@@ -12,6 +12,7 @@
 #include <unistd.h> //read, write...
 
 #include "connected_client.h"
+#include "logic_interface.h"
 
 namespace sck {
 
@@ -27,34 +28,38 @@ class server {
 
 	public:
 
-					server(int, int=1024, int=5);
-					~server();
-	void			start();
+						server(int, int=1024, int=5);
+						~server();
+	void				start();
+	void 				stop();
+	void 				set_logic(logic_interface&);
 
 	private:
 
-	const int 		read_message_buffer_size;
+	const int 			read_message_buffer_size;
 
-	static void		handle_signint(int);
-	void			loop();
-	std::string		read_from_socket(int);
-	void			write_to_client(int, const std::string&);
-	void			disconnect_client(int);
-	void			handle_new_connection();
-	void			handle_client_data(int);
-	void 			cleanup();
+	static void			handle_signint(int);
+	void				loop();
+	std::string			read_from_socket(int);
+	void				disconnect_client(int);
+	void				handle_new_connection();
+	void				handle_client_data(int);
+	void 				cleanup();
 
 	std::map<int, connected_client>	clients;	//Maps file descriptors to client data.
-	int				file_descriptor=-1,
-					port,
-					backlog;
-	std::string		address;
-	char * 			read_message_buffer=nullptr;
+	int					file_descriptor=-1,
+						port,
+						backlog;
+	std::string			address;
+	char * 				read_message_buffer=nullptr;
+	logic_interface	*	logic=nullptr;
 
 	struct {
-		fd_set 		set;
-		int			max_descriptor=0;
-	}				in_sockets;
+		fd_set 			set;
+		int				max_descriptor=0;
+	}					in_sockets;
+
+	bool				running=false;
 };
 
 }

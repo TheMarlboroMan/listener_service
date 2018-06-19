@@ -51,7 +51,6 @@ server::server(int _p, int _bs, int _b)
 server::~server() {
 
 	cleanup();
-
 }
 
 void server::cleanup() {
@@ -63,8 +62,10 @@ void server::cleanup() {
 		read_message_buffer=nullptr;
 	}
 
+	//TODO: This will DUMP!!!.
 	for(int i=0; i<=in_sockets.max_descriptor; i++) {
 		if(i!=file_descriptor) {
+			std::cout<<"DISCONNECT "<<i<<std::endl;
 			disconnect_client(i);
 		}
 	}
@@ -93,8 +94,7 @@ applications that intend to communicate with peers running on the same host.
 
 void server::start() {
 
-	//TODO: Separate in different methods.
-	//TODO: Create a socket class.
+	//TODO: This could not be uglier.
 
 	//Fill up the hints...
 	addrinfo hints;
@@ -156,6 +156,12 @@ void server::start() {
 	loop();
 }
 
+void server::stop() {
+
+	tools::info()<<"Stopping server now. Will complete the current listening cycle."<<tools::endl();
+	running=false;
+}
+
 void server::loop() {
 
 	fd_set copy_in;
@@ -163,8 +169,10 @@ void server::loop() {
 	timeval timeout{1, 0}; //Struct of 1 seconds. Select will exit once anything is ready, regardless of the timeout.
 	tools::info()<<"Starting to listen now"<<tools::endl();
 
+	running=true;
+
 	//TODO: Do we have a 100% loop?
-	while(true) {
+	while(running) {
 		try {
 			copy_in=in_sockets.set;	//Swap... select may change its values!.
 			timeout.tv_sec=5;
@@ -192,21 +200,8 @@ void server::loop() {
 			tools::error()<<"Listener thread caused an exception: "<<e.what()<<tools::endl();
 		}
 	}
-}
 
-void server::handle_client_data(int _file_descriptor) {
-
-	try {
-		std::string message=read_from_socket(_file_descriptor);
-		tools::info()<<"Received from "<<_file_descriptor<<" : "<<message<<tools::endl();
-
-		//TODO: Process message...
-		write_to_client(_file_descriptor, "Thanks for your words!");
-	}
-	catch(client_disconnected_exception& e) {
-		tools::info()<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl();
-		disconnect_client(_file_descriptor);
-	}
+	tools::info()<<"Listening stopped"<<tools::endl();
 }
 
 void server::handle_new_connection() {
@@ -214,8 +209,6 @@ void server::handle_new_connection() {
 	sockaddr_in client_address;
 	socklen_t l=sizeof(client_address);
 	int client_descriptor=accept(file_descriptor, (sockaddr *) &client_address, &l);
-
-tools::info()<<"New client descriptor is "<<client_descriptor<<tools::endl();
 
 	if(client_descriptor==-1) {
 		throw std::runtime_error("Failed on accept for new connection");
@@ -225,10 +218,46 @@ tools::info()<<"New client descriptor is "<<client_descriptor<<tools::endl();
 	FD_SET(client_descriptor, &in_sockets.set);
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 
-	//TODO: If need be, now we should actually read from the client to see if we got a proper register message, for example.
-	write_to_client(client_descriptor, "You have been connected!!\n");
+	if(logic) {
+		logic->handle_new_connection(clients.at(client_descriptor));
+	}
 
 	tools::info()<<"Client "<<client_descriptor<<" connected from "<<clients.at(client_descriptor).ip<<tools::endl();
+}
+
+void server::handle_client_data(int _file_descriptor) {
+
+	try {
+		std::string message=read_from_socket(_file_descriptor);
+
+		if(logic) {
+			logic->handle_client_data(message, clients.at(_file_descriptor));
+		}
+	}
+	catch(client_disconnected_exception& e) {
+		tools::info()<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl();
+		disconnect_client(_file_descriptor);
+	}
+}
+
+void server::disconnect_client(int _client_key) {
+
+	if(!clients.count(_client_key)) {
+		throw std::runtime_error("Attempted to disconnect invalid client");
+	}
+
+	if(logic) {
+		logic->handle_dissconection(clients.at(_client_key));
+	}
+
+	//Well, the key is actually the file descriptor, but that could change.
+	int file_descriptor=clients.at(_client_key).descriptor;
+
+	close(file_descriptor);
+	FD_CLR(file_descriptor, &in_sockets.set);
+	clients.erase(_client_key);
+
+	tools::info()<<"Client "<<file_descriptor<<" disconnected"<<tools::endl();
 }
 
 /*
@@ -256,34 +285,9 @@ std::string server::read_from_socket(int _client_descriptor) {
 	return std::string(read_message_buffer);
 }
 
-void server::write_to_client(int _client_descriptor, const std::string& _message) {
+void server::set_logic(logic_interface& li) {
 
-	int sent=0, left=_message.size();
-	while(left) {
-		int blocksize=send(_client_descriptor, _message.substr(sent, left).c_str(), left, 0);
-		if(blocksize==-1) {
-			//TODO: Could use a specialised exception to store how much did we send.
-			throw std::runtime_error("Could not write to client socket");
-		}
-		left-=blocksize;
-		sent+=blocksize;
-	}
-}
-
-void server::disconnect_client(int _client_key) {
-
-	if(!clients.count(_client_key)) {
-		throw std::runtime_error("Attempted to disconnect invalid client");
-	}
-
-	//Well, the key is actually the file descriptor, but that could change.
-	int file_descriptor=clients.at(_client_key).descriptor;
-
-	close(file_descriptor);
-	FD_CLR(file_descriptor, &in_sockets.set);
-	clients.erase(_client_key);
-
-	tools::info()<<"Client "<<file_descriptor<<" disconnected"<<tools::endl();
+	logic=&li;
 }
 
 //TODO: Suckage: fix the calling point and pass the ai_addr damn it...
