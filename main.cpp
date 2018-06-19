@@ -14,7 +14,7 @@ tools::log srvlog("logs/srvlog.log");
 
 int use(int _v) {
 
-	std::cout<<"use: ./a.out -p #port";
+	std::cout<<"["<<_v<<"] use: ./a.out -p #port [-d]\n\t-p Port number\n\t-d Run as daemon"<<std::endl;
 	return _v;
 }
 
@@ -24,23 +24,29 @@ int main(int argc, char ** argv) {
 
 		tools::arg_manager argman(argc, argv);
 
-		if(3!=argman.size()) {
-			return use(1);
-		}
-		else if(1!=argman.find_index_value("-p")) {
+		if(argman.size() < 3) {
 			return use(1);
 		}
 
+		int port_index=argman.find_index_value("-p");
+		if(-1==port_index) {
+			return use(2);
+		}
 
-		int port=std::atoi(argman.get_argument(2).c_str());
+		int port=std::atoi(argman.get_argument(port_index+1).c_str());
 		if(0==port) {
 			throw std::runtime_error("Invalid port");
 		}
 
 		sck::server srv(port);
-
 		sck::example_logic exl(srv);
 		srv.set_logic(exl);
+
+		if(-1!=argman.find_index_value("-d")) {
+			std::cout<<"Running as daemon"<<std::endl;
+			daemon(1, 0); //do not change working directory, redirect to dev/null.
+		}
+
 		srv.start();
 		return 0;
 	}
@@ -48,6 +54,6 @@ int main(int argc, char ** argv) {
 
 		tools::error()<<"Aborting due to exception: "<<e.what()<<tools::endl();
 		std::cout<<"Something failed: "<<e.what()<<std::endl;
-		return 1;
+		return -1;
 	}
 }

@@ -95,8 +95,6 @@ applications that intend to communicate with peers running on the same host.
 
 void server::start() {
 
-	//TODO: This could not be uglier.
-
 	//Fill up the hints...
 	addrinfo hints;
 	memset(&hints, 0, sizeof hints);
@@ -172,7 +170,6 @@ void server::loop() {
 
 	running=true;
 
-	//TODO: Do we have a 100% loop?
 	while(running) {
 		try {
 			copy_in=in_sockets.set;	//Swap... select may change its values!.
@@ -185,8 +182,7 @@ void server::loop() {
 			}
 
 			if(select_res > 0) {
-				//TODO: This happens to be reading in stdin and out too :D.
-				for(int i=0; i<=in_sockets.max_descriptor; i++) {
+				for(int i=0; i<=in_sockets.max_descriptor; i++) { //TODO: This happens to be reading in stdin and out too :D.
 					if(FD_ISSET(i, &copy_in)) {
 						if(i==file_descriptor) { //New connection on listener file_descriptor.
 							handle_new_connection();
