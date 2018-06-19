@@ -63,9 +63,10 @@ void server::cleanup() {
 	}
 
 	//TODO: This will DUMP!!!.
+
+
 	for(int i=0; i<=in_sockets.max_descriptor; i++) {
-		if(i!=file_descriptor) {
-			std::cout<<"DISCONNECT "<<i<<std::endl;
+		if(clients.count(i)) {
 			disconnect_client(i);
 		}
 	}
@@ -143,7 +144,7 @@ void server::start() {
 		throw std::runtime_error("Could not set the server to listen");
 	}
 
-	tools::info()<<"Server started on "<<address<<":"<<port<<tools::endl();
+	tools::info()<<"Server started on "<<address<<":"<<port<<" with FD "<<file_descriptor<<tools::endl();
 
 	in_sockets.max_descriptor=file_descriptor > in_sockets.max_descriptor ? file_descriptor : in_sockets.max_descriptor;
 	FD_ZERO(&in_sockets.set);
@@ -176,7 +177,7 @@ void server::loop() {
 		try {
 			copy_in=in_sockets.set;	//Swap... select may change its values!.
 			timeout.tv_sec=5;
-			timeout.tv_usec=0;	//select MAY write on this values and cause us to hog CPU.
+			timeout.tv_usec=0;	//select MAY write on these values and cause us to hog CPU.
 
 			int select_res=select(in_sockets.max_descriptor+1, &copy_in, nullptr, nullptr, &timeout);
 			if(select_res==-1) {
@@ -184,6 +185,7 @@ void server::loop() {
 			}
 
 			if(select_res > 0) {
+				//TODO: This happens to be reading in stdin and out too :D.
 				for(int i=0; i<=in_sockets.max_descriptor; i++) {
 					if(FD_ISSET(i, &copy_in)) {
 						if(i==file_descriptor) { //New connection on listener file_descriptor.
