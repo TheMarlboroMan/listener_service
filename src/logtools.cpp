@@ -4,7 +4,6 @@
 
 using namespace tools;
 
-//TODO: I don't like this... FUCK THIS!!!!.
 log& tools::error(tools::log& srvlog) {
 	srvlog<<tools::lop::lock<<tools::ltime::datetime<<tools::lin::error;
 	return srvlog;
