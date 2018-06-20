@@ -1,7 +1,5 @@
 #include "logtools.h"
 
-#include <iostream>
-
 using namespace tools;
 
 log& tools::error(tools::log& srvlog) {
