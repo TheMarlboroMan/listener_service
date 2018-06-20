@@ -11,6 +11,8 @@
 #include <netdb.h>
 #include <unistd.h> //read, write...
 
+#include <log.h>
+
 #include "connected_client.h"
 #include "logic_interface.h"
 
@@ -33,6 +35,7 @@ class server {
 	void				start();
 	void 				stop();
 	void 				set_logic(logic_interface&);
+	void 				set_log(tools::log&);
 
 	private:
 
@@ -53,6 +56,7 @@ class server {
 	std::string			address;
 	char * 				read_message_buffer=nullptr;
 	logic_interface	*	logic=nullptr;
+	tools::log *		log=nullptr;
 
 	struct {
 		fd_set 			set;

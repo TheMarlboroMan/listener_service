@@ -10,4 +10,5 @@ tools::text_reader
 
 ## TODO:
 
+Write a good "build" guide.
 The dependency on text_reader is flaky. string_utils should not depend on them.

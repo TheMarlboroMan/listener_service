@@ -7,8 +7,11 @@ EXTERNAL_DEPS=../log/obj/log.o ../tools/objects/arg_manager.o ../tools/objects/s
 clean:
 	rm obj/*; rm ./a.out; rm logs/*;
 
-all: $(DEPS_MAIN)
+all: dirs $(DEPS_MAIN)
 	g++ $(CFLAGS) $(DEPS_MAIN) $(EXTERNAL_DEPS) $(INCLUDES) $(LIBS)
+
+dirs:
+	mkdir -p obj; mkdir -p logs;
 
 obj/logtools.o: src/logtools.h src/logtools.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/logtools.cpp -o obj/logtools.o

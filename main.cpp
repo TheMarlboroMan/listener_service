@@ -10,11 +10,9 @@
 #include <arg_manager.h>
 
 //Test client with netcat 127.0.1.1 16666 or echo "HI" | netcat 127.0.0.1 16666
-tools::log srvlog("logs/srvlog.log");
-
 int use(int _v) {
 
-	std::cout<<"["<<_v<<"] use: ./a.out -p #port [-d]\n\t-p Port number\n\t-d Run as daemon"<<std::endl;
+	std::cout<<"["<<_v<<"] use: ./a.out -p #port [-l #logfile] [-d]\n\t-p Port number\n\t-d Run as daemon"<<std::endl;
 	return _v;
 }
 
@@ -28,6 +26,7 @@ int main(int argc, char ** argv) {
 			return use(1);
 		}
 
+		//Get port and init the server...
 		int port_index=argman.find_index_value("-p");
 		if(-1==port_index) {
 			return use(2);
@@ -39,9 +38,21 @@ int main(int argc, char ** argv) {
 		}
 
 		sck::server srv(port);
+
+		//Manage logic.
 		sck::example_logic exl(srv);
 		srv.set_logic(exl);
 
+		//Manage log.
+		tools::log srvlog;
+		int log_index=argman.find_index_value("-l");
+		if(-1!=log_index) {
+			srvlog.init(argman.get_argument(log_index+1).c_str());
+			srvlog.activate();
+			srv.set_log(srvlog);
+		}
+
+		//Daemonize if needed...
 		if(-1!=argman.find_index_value("-d")) {
 			std::cout<<"Running as daemon"<<std::endl;
 			daemon(1, 0); //do not change working directory, redirect to dev/null.
@@ -52,7 +63,8 @@ int main(int argc, char ** argv) {
 	}
 	catch(std::exception &e) {
 
-		tools::error()<<"Aborting due to exception: "<<e.what()<<tools::endl();
+		//TODO...
+		//tools::error()<<"Aborting due to exception: "<<e.what()<<tools::endl();
 		std::cout<<"Something failed: "<<e.what()<<std::endl;
 		return -1;
 	}

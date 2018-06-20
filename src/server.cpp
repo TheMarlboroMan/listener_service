@@ -10,8 +10,6 @@
 
 #include "logtools.h"
 
-extern tools::log srvlog;
-
 /*
 struct addrinfo {
     int              ai_flags;     // AI_PASSIVE, AI_CANONNAME, etc.
@@ -55,15 +53,14 @@ server::~server() {
 
 void server::cleanup() {
 
-	tools::info()<<"Cleaning up..."<<tools::endl();
+	if(log) {
+		tools::info(*log)<<"Cleaning up..."<<tools::endl(*log);
+	}
 
 	if(read_message_buffer) {
 		delete [] read_message_buffer;
 		read_message_buffer=nullptr;
 	}
-
-	//TODO: This will DUMP!!!.
-
 
 	for(int i=0; i<=in_sockets.max_descriptor; i++) {
 		if(clients.count(i)) {
@@ -73,7 +70,7 @@ void server::cleanup() {
 }
 
 void server::handle_signint(int _s) {
-	tools::info()<<"Caught SIGINT. Exiting..."<<tools::endl();
+
 	exit(1);
 }
 
@@ -142,7 +139,9 @@ void server::start() {
 		throw std::runtime_error("Could not set the server to listen");
 	}
 
-	tools::info()<<"Server started on "<<address<<":"<<port<<" with FD "<<file_descriptor<<tools::endl();
+	if(log) {
+		tools::info(*log)<<"Server started on "<<address<<":"<<port<<" with FD "<<file_descriptor<<tools::endl(*log);
+	}
 
 	in_sockets.max_descriptor=file_descriptor > in_sockets.max_descriptor ? file_descriptor : in_sockets.max_descriptor;
 	FD_ZERO(&in_sockets.set);
@@ -157,7 +156,10 @@ void server::start() {
 
 void server::stop() {
 
-	tools::info()<<"Stopping server now. Will complete the current listening cycle."<<tools::endl();
+	if(log) {
+		tools::info(*log)<<"Stopping server now. Will complete the current listening cycle."<<tools::endl(*log);
+	}
+
 	running=false;
 }
 
@@ -166,7 +168,10 @@ void server::loop() {
 	fd_set copy_in;
 	//timeval timeout{0, 100000}; //Struct of 0.1 seconds.
 	timeval timeout{1, 0}; //Struct of 1 seconds. Select will exit once anything is ready, regardless of the timeout.
-	tools::info()<<"Starting to listen now"<<tools::endl();
+
+	if(log) {
+		tools::info(*log)<<"Starting to listen now"<<tools::endl(*log);
+	}
 
 	running=true;
 
@@ -195,11 +200,15 @@ void server::loop() {
 			}
 		}
 		catch(std::exception &e) {
-			tools::error()<<"Listener thread caused an exception: "<<e.what()<<tools::endl();
+			if(log) {
+				tools::error(*log)<<"Listener thread caused an exception: "<<e.what()<<tools::endl(*log);
+			}
 		}
 	}
 
-	tools::info()<<"Listening stopped"<<tools::endl();
+	if(log) {
+		tools::info(*log)<<"Listening stopped"<<tools::endl(*log);
+	}
 }
 
 void server::handle_new_connection() {
@@ -220,7 +229,9 @@ void server::handle_new_connection() {
 		logic->handle_new_connection(clients.at(client_descriptor));
 	}
 
-	tools::info()<<"Client "<<client_descriptor<<" connected from "<<clients.at(client_descriptor).ip<<tools::endl();
+	if(log) {
+		tools::info(*log)<<"Client "<<client_descriptor<<" connected from "<<clients.at(client_descriptor).ip<<tools::endl(*log);
+	}
 }
 
 void server::handle_client_data(int _file_descriptor) {
@@ -233,7 +244,9 @@ void server::handle_client_data(int _file_descriptor) {
 		}
 	}
 	catch(client_disconnected_exception& e) {
-		tools::info()<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl();
+		if(log) {
+			tools::info(*log)<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl(*log);
+		}
 		disconnect_client(_file_descriptor);
 	}
 }
@@ -255,7 +268,9 @@ void server::disconnect_client(int _client_key) {
 	FD_CLR(file_descriptor, &in_sockets.set);
 	clients.erase(_client_key);
 
-	tools::info()<<"Client "<<file_descriptor<<" disconnected"<<tools::endl();
+	if(log) {
+		tools::info(*log)<<"Client "<<file_descriptor<<" disconnected"<<tools::endl(*log);
+	}
 }
 
 /*
@@ -283,9 +298,14 @@ std::string server::read_from_socket(int _client_descriptor) {
 	return std::string(read_message_buffer);
 }
 
-void server::set_logic(logic_interface& li) {
+void server::set_logic(logic_interface& _li) {
 
-	logic=&li;
+	logic=&_li;
+}
+
+void server::set_log(tools::log& _l) {
+
+	log=&_l;
 }
 
 //TODO: Suckage: fix the calling point and pass the ai_addr damn it...
