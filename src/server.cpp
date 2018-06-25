@@ -64,6 +64,7 @@ void server::cleanup() {
 
 	for(int i=0; i<=in_sockets.max_descriptor; i++) {
 		if(clients.count(i)) {
+			//TODO: Perhaps we should use the client map...
 			disconnect_client(i);
 		}
 	}
@@ -247,15 +248,28 @@ void server::handle_client_data(int _file_descriptor) {
 		if(log) {
 			tools::info(*log)<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl(*log);
 		}
+		//TODO: There are two ways of calling this. I am not happy about this one.
 		disconnect_client(_file_descriptor);
 	}
 }
 
+//!This is the public interface part...
+//TODO: This should be the preferred way of interacting with clients: through their
+//full connected_client object.
+void server::disconnect_client(const sck::connected_client& _cl) {
+
+	disconnect_client(_cl.descriptor);
+
+}
+
+//TODO: This should dissapear.
 void server::disconnect_client(int _client_key) {
 
 	if(!clients.count(_client_key)) {
 		throw std::runtime_error("Attempted to disconnect invalid client");
 	}
+
+	//This is starting to seem redundant...
 
 	if(logic) {
 		logic->handle_dissconection(clients.at(_client_key));

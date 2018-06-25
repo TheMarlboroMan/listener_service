@@ -36,6 +36,7 @@ class server {
 	void 				stop();
 	void 				set_logic(logic_interface&);
 	void 				set_log(tools::log&);
+	void 				disconnect_client(const sck::connected_client&);
 
 	private:
 
