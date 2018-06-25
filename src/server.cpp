@@ -54,7 +54,7 @@ server::~server() {
 void server::cleanup() {
 
 	if(log) {
-		tools::info(*log)<<"Cleaning up..."<<tools::endl(*log);
+		tools::info(*log)<<"Cleaning up message buffer..."<<tools::endl(*log);
 	}
 
 	if(read_message_buffer) {
@@ -62,11 +62,19 @@ void server::cleanup() {
 		read_message_buffer=nullptr;
 	}
 
+	if(log) {
+		tools::info(*log)<<"Cleaning up clients..."<<tools::endl(*log);
+	}
+
 	for(int i=0; i<=in_sockets.max_descriptor; i++) {
 		if(clients.count(i)) {
 			//TODO: Perhaps we should use the client map...
 			disconnect_client(i);
 		}
+	}
+
+	if(log) {
+		tools::info(*log)<<"Cleanup completed..."<<tools::endl(*log);
 	}
 }
 
@@ -157,11 +165,11 @@ void server::start() {
 
 void server::stop() {
 
+	running=false;
+
 	if(log) {
 		tools::info(*log)<<"Stopping server now. Will complete the current listening cycle."<<tools::endl(*log);
 	}
-
-	running=false;
 }
 
 void server::loop() {
@@ -177,6 +185,11 @@ void server::loop() {
 	running=true;
 
 	while(running) {
+
+		if(log) {
+			tools::info(*log)<<"Still running"<<tools::endl(*log);
+		}
+
 		try {
 			copy_in=in_sockets.set;	//Swap... select may change its values!.
 			timeout.tv_sec=5;
@@ -241,7 +254,10 @@ void server::handle_client_data(int _file_descriptor) {
 		std::string message=read_from_socket(_file_descriptor);
 
 		if(logic) {
+if(log) {tools::error(*log)<<"Enter logic"<<tools::endl(*log);}
 			logic->handle_client_data(message, clients.at(_file_descriptor));
+if(log) {tools::error(*log)<<"Exit logic"<<tools::endl(*log);}
+
 		}
 	}
 	catch(client_disconnected_exception& e) {
