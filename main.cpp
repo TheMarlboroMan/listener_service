@@ -27,7 +27,7 @@ int main(int argc, char ** argv) {
 		}
 
 		//Get port and init the server...
-		int port_index=argman.find_index_value("-p");
+		int port_index=argman.find_index("-p");
 		if(-1==port_index) {
 			return use(2);
 		}
@@ -45,7 +45,7 @@ int main(int argc, char ** argv) {
 
 		//Manage log.
 		tools::log srvlog;
-		int log_index=argman.find_index_value("-l");
+		int log_index=argman.find_index("-l");
 		if(-1!=log_index) {
 			srvlog.init(argman.get_argument(log_index+1).c_str());
 			srvlog.activate();
@@ -53,7 +53,7 @@ int main(int argc, char ** argv) {
 		}
 
 		//Daemonize if needed...
-		if(-1!=argman.find_index_value("-d")) {
+		if(-1!=argman.find_index("-d")) {
 			std::cout<<"Running as daemon"<<std::endl;
 			daemon(1, 0); //do not change working directory, redirect to dev/null.
 		}
