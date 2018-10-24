@@ -18,7 +18,14 @@ log& tools::info(tools::log& srvlog) {
 	return srvlog;
 }
 
+log& tools::debug(tools::log& srvlog) {
+
+	srvlog<<tools::lop::lock<<tools::ltime::datetime<<tools::lin::debug;
+	return srvlog;
+}
+
 lop tools::endl(tools::log& srvlog) {
+
 	srvlog<<std::endl<<lop::unlock;
 	return lop::unlock;
 }
