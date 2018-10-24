@@ -4,10 +4,10 @@
 #include <cstdlib>
 
 #include "src/server.h"
-#include "src/logtools.h"
 #include "src/example_logic.h"
 
 #include <arg_manager.h>
+#include <src/log_tools.h>
 
 //Test client with netcat 127.0.1.1 16666 or echo "HI" | netcat 127.0.0.1 16666
 int use(int _v) {

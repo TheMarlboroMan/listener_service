@@ -3,12 +3,14 @@
 #include <iostream>
 //#include <thread>
 
+#include <src/log_tools.h>
+
 #include <cstring> 	//Memset.
 #include <arpa/inet.h> 	//inet_ntop.
 #include <signal.h> 	//Memset.
 #include <sys/un.h>	//Local sockets...
 
-#include "logtools.h"
+
 
 /*
 struct addrinfo {

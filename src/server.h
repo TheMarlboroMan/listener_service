@@ -11,7 +11,7 @@
 #include <netdb.h>
 #include <unistd.h> //read, write...
 
-#include <log.h>
+#include <src/log.h>
 
 #include "connected_client.h"
 #include "logic_interface.h"
