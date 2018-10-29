@@ -56,7 +56,7 @@ server::~server() {
 void server::cleanup() {
 
 	if(log) {
-		tools::info(*log)<<"Cleaning up message buffer..."<<tools::endl(*log);
+		tools::info(*log)<<"Cleaning up message buffer..."<<tools::endl();
 	}
 
 	if(read_message_buffer) {
@@ -65,7 +65,7 @@ void server::cleanup() {
 	}
 
 	if(log) {
-		tools::info(*log)<<"Cleaning up clients..."<<tools::endl(*log);
+		tools::info(*log)<<"Cleaning up clients..."<<tools::endl();
 	}
 
 	for(int i=0; i<=in_sockets.max_descriptor; i++) {
@@ -76,7 +76,7 @@ void server::cleanup() {
 	}
 
 	if(log) {
-		tools::info(*log)<<"Cleanup completed..."<<tools::endl(*log);
+		tools::info(*log)<<"Cleanup completed..."<<tools::endl();
 	}
 }
 
@@ -151,7 +151,7 @@ void server::start() {
 	}
 
 	if(log) {
-		tools::info(*log)<<"Server started on "<<address<<":"<<port<<" with FD "<<file_descriptor<<tools::endl(*log);
+		tools::info(*log)<<"Server started on "<<address<<":"<<port<<" with FD "<<file_descriptor<<tools::endl();
 	}
 
 	in_sockets.max_descriptor=file_descriptor > in_sockets.max_descriptor ? file_descriptor : in_sockets.max_descriptor;
@@ -170,7 +170,7 @@ void server::stop() {
 	running=false;
 
 	if(log) {
-		tools::info(*log)<<"Stopping server now. Will complete the current listening cycle."<<tools::endl(*log);
+		tools::info(*log)<<"Stopping server now. Will complete the current listening cycle."<<tools::endl();
 	}
 }
 
@@ -181,7 +181,7 @@ void server::loop() {
 	timeval timeout{1, 0}; //Struct of 1 seconds. Select will exit once anything is ready, regardless of the timeout.
 
 	if(log) {
-		tools::info(*log)<<"Starting to listen now"<<tools::endl(*log);
+		tools::info(*log)<<"Starting to listen now"<<tools::endl();
 	}
 
 	running=true;
@@ -189,7 +189,7 @@ void server::loop() {
 	while(running) {
 
 		if(log) {
-			tools::info(*log)<<"Still running"<<tools::endl(*log);
+			tools::info(*log)<<"Still running"<<tools::endl();
 		}
 
 		try {
@@ -217,13 +217,13 @@ void server::loop() {
 		}
 		catch(std::exception &e) {
 			if(log) {
-				tools::error(*log)<<"Listener thread caused an exception: "<<e.what()<<tools::endl(*log);
+				tools::error(*log)<<"Listener thread caused an exception: "<<e.what()<<tools::endl();
 			}
 		}
 	}
 
 	if(log) {
-		tools::info(*log)<<"Listening stopped"<<tools::endl(*log);
+		tools::info(*log)<<"Listening stopped"<<tools::endl();
 	}
 }
 
@@ -246,7 +246,7 @@ void server::handle_new_connection() {
 	}
 
 	if(log) {
-		tools::info(*log)<<"Client "<<client_descriptor<<" connected from "<<clients.at(client_descriptor).ip<<tools::endl(*log);
+		tools::info(*log)<<"Client "<<client_descriptor<<" connected from "<<clients.at(client_descriptor).ip<<tools::endl();
 	}
 }
 
@@ -256,15 +256,15 @@ void server::handle_client_data(int _file_descriptor) {
 		std::string message=read_from_socket(_file_descriptor);
 
 		if(logic) {
-if(log) {tools::error(*log)<<"Enter logic"<<tools::endl(*log);}
+if(log) {tools::error(*log)<<"Enter logic"<<tools::endl();}
 			logic->handle_client_data(message, clients.at(_file_descriptor));
-if(log) {tools::error(*log)<<"Exit logic"<<tools::endl(*log);}
+if(log) {tools::error(*log)<<"Exit logic"<<tools::endl();}
 
 		}
 	}
 	catch(client_disconnected_exception& e) {
 		if(log) {
-			tools::info(*log)<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl(*log);
+			tools::info(*log)<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl();
 		}
 		//TODO: There are two ways of calling this. I am not happy about this one.
 		disconnect_client(_file_descriptor);
@@ -301,7 +301,7 @@ void server::disconnect_client(int _client_key) {
 	clients.erase(_client_key);
 
 	if(log) {
-		tools::info(*log)<<"Client "<<file_descriptor<<" disconnected"<<tools::endl(*log);
+		tools::info(*log)<<"Client "<<file_descriptor<<" disconnected"<<tools::endl();
 	}
 }
 
