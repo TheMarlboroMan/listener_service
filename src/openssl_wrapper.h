@@ -52,7 +52,8 @@ class openssl_wrapper {
 		 				openssl_wrapper(const std::string&, const std::string&, tools::log* =nullptr);
 
 	int					recv(int, char *, int);
-	void				accept();
+	int					send(int, const char *, int);
+	void				accept(int);
 
 #ifdef WITH_SSL
 

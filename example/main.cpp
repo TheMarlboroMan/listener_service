@@ -50,10 +50,6 @@ int main(int argc, char ** argv) {
 
 		sck::server srv(port);
 
-		//Manage logic.
-		sck::example_logic exl(srv);
-		srv.set_logic(exl);
-
 		//Manage log.
 		tools::log srvlog;
 		int log_index=argman.find_index("-l");
@@ -63,13 +59,20 @@ int main(int argc, char ** argv) {
 			srv.set_log(srvlog);
 		}
 
+		//TODO: The initialization order can REALLY FUCK YOU UP... What if you
+		//put the logic before this? Should not be done... either the server
+		//is flexible with the way it works or we fucking build it as SSL
+		//from scratch.
+
 		#ifdef WITH_SSL
 		if(-1!=argman.find_index("-ssl")) {
 			srv.enable_ssl("cert.pem", "key.pem");		
 		}
 		#endif
 
-
+		//Manage logic.
+		sck::example_logic exl(srv);
+		srv.set_logic(exl);
 
 		//Daemonize if needed...
 		if(-1!=argman.find_index("-d")) {

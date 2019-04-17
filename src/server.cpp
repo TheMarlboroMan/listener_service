@@ -212,7 +212,8 @@ void server::loop() {
 			}
 
 			if(select_res > 0) {
-				for(int i=0; i<=in_sockets.max_descriptor; i++) { //TODO: This happens to be reading in stdin and out too :D.
+				//TODO: This happens to be reading in stdin and out too :D.
+				for(int i=0; i<=in_sockets.max_descriptor; i++) {
 					if(FD_ISSET(i, &copy_in)) {
 						if(i==file_descriptor) { //New connection on listener file_descriptor.
 							handle_new_connection();
@@ -248,8 +249,8 @@ void server::handle_new_connection() {
 
 	if(has_ssl()) {
 
-		try {			
-			ssl_wrapper->accept();
+		try {	
+			ssl_wrapper->accept(client_descriptor);
 		}
 		catch(openssl_exception& e) {
 			throw std::runtime_error(std::string("SSL connection failed : ")+e.what());
@@ -278,6 +279,14 @@ void server::handle_client_data(int _file_descriptor) {
 			logic->handle_client_data(message, clients.at(_file_descriptor));
 		}
 	}
+	catch(openssl_exception& e) {
+
+		if(log) {
+			tools::info(*log)<<"Client "<<_file_descriptor<<" SSL failure: "<<e.what()<<tools::endl();
+		}
+
+		disconnect_client(clients.at(_file_descriptor));
+	}
 	catch(client_disconnected_exception& e) {
 		if(log) {
 			tools::info(*log)<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl();
@@ -287,9 +296,6 @@ void server::handle_client_data(int _file_descriptor) {
 	}
 }
 
-//!This is the public interface part...
-//TODO: This should be the preferred way of interacting with clients: through their
-//full connected_client object.
 void server::disconnect_client(const sck::connected_client& _cl) {
 
 	int client_key=_cl.descriptor;
@@ -313,7 +319,6 @@ void server::disconnect_client(const sck::connected_client& _cl) {
 	clients.erase(client_key);
 
 	if(log) {
-
 		tools::info(*log) << "Client " << file_descriptor << " disconnected" << tools::endl();
 	}
 }
@@ -332,12 +337,11 @@ std::string server::read_from_socket(int _client_descriptor) {
 
 	memset(read_message_buffer, 0, read_message_buffer_size);
 
-	//TODO: SSL
 	auto read=has_ssl()
 		? ssl_wrapper->recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1)
 		: recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
 
-	if(read==-1) {
+	if(read < 0) {
 		throw std::runtime_error("Could not read from client socket in client_descriptor "+std::to_string(_client_descriptor));
 	}
 	else if(read==0) {
@@ -359,7 +363,7 @@ void server::set_log(tools::log& _l) {
 
 client_writer server::create_writer() {
 
-	return client_writer{};
+	return client_writer(ssl_wrapper.get());
 }
 
 //TODO: Suckage: fix the calling point and pass the ai_addr damn it...
