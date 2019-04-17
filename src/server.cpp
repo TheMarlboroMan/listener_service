@@ -9,8 +9,6 @@
 #include <signal.h> 	//Memset.
 #include <sys/un.h>	//Local sockets...
 
-
-
 /*
 struct addrinfo {
     int              ai_flags;     // AI_PASSIVE, AI_CANONNAME, etc.
@@ -42,9 +40,7 @@ using namespace sck;
 server::server(int _p, int _bs, int _b)
 	:
 	read_message_buffer_size(_bs), 
-#ifdef WITH_SSL
 	ssl_wrapper(nullptr),
-#endif
 	port(_p),
 	backlog(_b) {
 	
@@ -73,24 +69,20 @@ server::~server() {
 		}
 	}
 
-#ifdef WITH_SSL
 	ssl_wrapper.reset(nullptr);
-#endif
 
 	if(log) {
 		tools::info(*log)<<"Cleanup completed..."<<tools::endl();
 	}
 }
 
-#ifdef WITH_SSL
 
 void server::enable_ssl(const std::string& _certpath, const std::string& _keypath) {
 
 	if(log) {
 		tools::info(*log)<<"server will enable use of SSL..."<<tools::endl();
 	}
-	
-
+		
 	if(nullptr!=ssl_wrapper) {
 		throw new std::runtime_error("enable_ssl already called for this server");
 	}
@@ -98,7 +90,10 @@ void server::enable_ssl(const std::string& _certpath, const std::string& _keypat
 	ssl_wrapper.reset(new openssl_wrapper(_certpath, _keypath, log));
 }
 
-#endif
+bool server::has_ssl() const {
+
+	return nullptr!=ssl_wrapper;
+}
 
 /*
 From man getaddrinfo:
@@ -251,7 +246,15 @@ void server::handle_new_connection() {
 		throw std::runtime_error("Failed on accept for new connection");
 	}
 
-	//TODO: Openssl shit here!!!!!
+	if(has_ssl()) {
+
+		try {			
+			ssl_wrapper->accept();
+		}
+		catch(openssl_exception& e) {
+			throw std::runtime_error(std::string("SSL connection failed : ")+e.what());
+		}
+	}
 
 	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address))} );
 	FD_SET(client_descriptor, &in_sockets.set);
@@ -272,10 +275,7 @@ void server::handle_client_data(int _file_descriptor) {
 		std::string message=read_from_socket(_file_descriptor);
 
 		if(logic) {
-if(log) {tools::error(*log)<<"Enter logic"<<tools::endl();}
 			logic->handle_client_data(message, clients.at(_file_descriptor));
-if(log) {tools::error(*log)<<"Exit logic"<<tools::endl();}
-
 		}
 	}
 	catch(client_disconnected_exception& e) {
@@ -332,8 +332,10 @@ std::string server::read_from_socket(int _client_descriptor) {
 
 	memset(read_message_buffer, 0, read_message_buffer_size);
 
-	//TODO: This is the part where we fork on stupid ssl things...
-	auto read=recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
+	//TODO: SSL
+	auto read=has_ssl()
+		? ssl_wrapper->recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1)
+		: recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
 
 	if(read==-1) {
 		throw std::runtime_error("Could not read from client socket in client_descriptor "+std::to_string(_client_descriptor));

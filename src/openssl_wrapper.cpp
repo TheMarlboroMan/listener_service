@@ -4,10 +4,18 @@
 
 using namespace sck;
 
-openssl_context::openssl_context(const std::string& _certpath, const std::string& _keypath, tools::log* _log)
-	:context(nullptr), log(_log) {
+#ifndef WITH_SSL
 
-	//TODO: Fuck this.
+openssl_wrapper::openssl_wrapper(const std::string&, const std::string&, tools::log*) {
+
+	throw openssl_exception();
+}
+
+//Finishes no SSL version
+#else
+
+openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, const std::string& _keypath, tools::log* _log)
+	:context(nullptr), log(_log) {
 
 #ifdef WITH_SSL_CURRENT
 	if(log) {
@@ -58,7 +66,40 @@ openssl_context::openssl_context(const std::string& _certpath, const std::string
 	}
 }
 
-openssl_context::~openssl_context() {
+
+int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
+
+#ifndef WITH_SSL_CURRENT
+
+	return 0;
+
+#else
+
+	if(1!=SSL_set_fd(ssl, _fd)) {
+		throw openssl_exception("could not set fd", ERR_get_error());
+	}
+
+	int bytes_read=SSL_read(ssl, _buffer, num);
+
+	if(0 > bytes_read) {
+		throw openssl_exception("read operation failed", ERR_get_error());
+	}
+
+	return bytes_read;
+
+#endif
+}
+
+void openssl_wrapper::accept() {
+
+#ifdef WITH_SSL_CURRENT
+	if(1!=SSL_set_fd(ssl, _fd)) {
+		throw openssl_exception("could not set perform openssl accept procedure", ERR_get_error());
+	}
+#endif
+}
+
+openssl_wrapper::openssl_context::~openssl_context() {
 
 	if(nullptr!=context) {
 		
@@ -71,7 +112,7 @@ openssl_context::~openssl_context() {
 	context=nullptr;
 }
 
-openssl_ssl::openssl_ssl(SSL_CTX * _context, tools::log* _log)
+openssl_wrapper::openssl_ssl::openssl_ssl(SSL_CTX * _context, tools::log* _log)
 	:ssl(nullptr), log(_log) {
 
 	ssl=SSL_new(_context);
@@ -86,7 +127,7 @@ openssl_ssl::openssl_ssl(SSL_CTX * _context, tools::log* _log)
 	}
 }
 
-openssl_ssl::~openssl_ssl() {
+openssl_wrapper::openssl_ssl::~openssl_ssl() {
 
 	if(nullptr!=ssl) {
 
@@ -129,3 +170,5 @@ void openssl_wrapper::cleanup() {
 	EVP_cleanup(); //No effect in openssl 1.1.0.
 }
 
+//Finishes SSL version.
+#endif 

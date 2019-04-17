@@ -15,6 +15,8 @@ void client_writer::write(const std::string& _msg, const connected_client& _cl) 
 				client_descriptor=_cl.descriptor;
 
 	while(left) {
+
+		//TODO: SSL... again.
 		int blocksize=send(client_descriptor, _msg.substr(sent, left).c_str(), left, 0);
 		if(blocksize==-1) {
 			//TODO: Could use a specialised exception to store how much did we send.

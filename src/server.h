@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 #include <map>
+#include <memory>
 
 #include <netinet/in.h>	//This is for domain adresses.
 #include <sys/types.h>
@@ -16,12 +17,7 @@
 #include "connected_client.h"
 #include "logic_interface.h"
 #include "client_writer.h"
-
-#ifdef WITH_SSL
-#include <memory>
 #include "openssl_wrapper.h"
-#endif
-
 
 namespace sck {
 
@@ -58,13 +54,13 @@ class server {
 	//!Obtains a client writer, imbuing it with any neccesary data.
 	client_writer		create_writer();
 
-#ifdef WITH_SSL
 	//!Enables SSL connection. Uses the given certificate and key paths. May throw if
-	//!cannot get it to work. Will throw if called twice.
+	//!cannot get it to work. Will throw if called twice. Throws if compiled
+	//!without SSL.
 	void				enable_ssl(const std::string&, const std::string&);
-	//!Returns true if SSL is enabled.
-	bool				has_ssl() const {return nullptr!=ssl_wrapper;}
-#endif
+	//!Returns true if SSL is enabled. Always returns false if compiled without
+	//!SSL.
+	bool				has_ssl() const;
 
 	private:
 
@@ -80,9 +76,8 @@ class server {
 	void				handle_client_data(int);
 
 	std::map<int, connected_client>	clients;	//!<Maps file descriptors to client data.
-#ifdef WITH_SSL
 	std::unique_ptr<openssl_wrapper>	ssl_wrapper;
-#endif
+
 	int					file_descriptor=-1,
 						port,
 						backlog;
