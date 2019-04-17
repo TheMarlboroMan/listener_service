@@ -2,6 +2,10 @@ obj/*
 logs/*
 !logs
 
+.vscode
+cert.pem
+key.pem
+
 # Prerequisites
 *.d
 

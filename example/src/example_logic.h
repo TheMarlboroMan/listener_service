@@ -1,10 +1,10 @@
 #ifndef EXAMPLE_LOGIC_H
 #define EXAMPLE_LOGIC_H
 
-#include "server.h"
-#include "logic_interface.h"
-#include "connected_client.h"
-#include "client_writer.h"
+#include "../../src/server.h"
+#include "../../src/logic_interface.h"
+#include "../../src/connected_client.h"
+#include "../../src/client_writer.h"
 
 namespace sck {
 

@@ -2,7 +2,8 @@
 
 using namespace sck;
 
-example_logic::example_logic(server& _s):srv(_s) {
+example_logic::example_logic(server& _s)
+	:srv(_s), wrt{srv.create_writer()} {
 
 }
 

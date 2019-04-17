@@ -1,7 +1,6 @@
 #include "server.h"
 
 #include <iostream>
-//#include <thread>
 
 #include <src/log_tools.h>
 
@@ -41,19 +40,19 @@ struct sockaddr_in {
 using namespace sck;
 
 server::server(int _p, int _bs, int _b)
-	:read_message_buffer_size(_bs), port(_p), backlog(_b) {
-
-	signal(SIGINT, &server::handle_signint);
+	:
+	read_message_buffer_size(_bs), 
+#ifdef WITH_SSL
+	ssl_wrapper(nullptr),
+#endif
+	port(_p),
+	backlog(_b) {
+	
 	read_message_buffer=new char[read_message_buffer_size];
 	memset(read_message_buffer, 0, read_message_buffer_size);
 }
 
 server::~server() {
-
-	cleanup();
-}
-
-void server::cleanup() {
 
 	if(log) {
 		tools::info(*log)<<"Cleaning up message buffer..."<<tools::endl();
@@ -70,21 +69,36 @@ void server::cleanup() {
 
 	for(int i=0; i<=in_sockets.max_descriptor; i++) {
 		if(clients.count(i)) {
-			//TODO: Perhaps we should use the client map...
-			disconnect_client(i);
+			disconnect_client(clients.at(i));
 		}
 	}
+
+#ifdef WITH_SSL
+	ssl_wrapper.reset(nullptr);
+#endif
 
 	if(log) {
 		tools::info(*log)<<"Cleanup completed..."<<tools::endl();
 	}
 }
 
-void server::handle_signint(int _s) {
+#ifdef WITH_SSL
 
-	exit(1);
+void server::enable_ssl(const std::string& _certpath, const std::string& _keypath) {
+
+	if(log) {
+		tools::info(*log)<<"server will enable use of SSL..."<<tools::endl();
+	}
+	
+
+	if(nullptr!=ssl_wrapper) {
+		throw new std::runtime_error("enable_ssl already called for this server");
+	}
+
+	ssl_wrapper.reset(new openssl_wrapper(_certpath, _keypath, log));
 }
 
+#endif
 
 /*
 From man getaddrinfo:
@@ -231,11 +245,13 @@ void server::handle_new_connection() {
 
 	sockaddr_in client_address;
 	socklen_t l=sizeof(client_address);
-	int client_descriptor=accept(file_descriptor, (sockaddr *) &client_address, &l);
 
+	int client_descriptor=accept(file_descriptor, (sockaddr *) &client_address, &l);
 	if(client_descriptor==-1) {
 		throw std::runtime_error("Failed on accept for new connection");
 	}
+
+	//TODO: Openssl shit here!!!!!
 
 	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address))} );
 	FD_SET(client_descriptor, &in_sockets.set);
@@ -266,8 +282,8 @@ if(log) {tools::error(*log)<<"Exit logic"<<tools::endl();}
 		if(log) {
 			tools::info(*log)<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl();
 		}
-		//TODO: There are two ways of calling this. I am not happy about this one.
-		disconnect_client(_file_descriptor);
+
+		disconnect_client(clients.at(_file_descriptor));
 	}
 }
 
@@ -276,32 +292,29 @@ if(log) {tools::error(*log)<<"Exit logic"<<tools::endl();}
 //full connected_client object.
 void server::disconnect_client(const sck::connected_client& _cl) {
 
-	disconnect_client(_cl.descriptor);
+	int client_key=_cl.descriptor;
 
-}
+	if(!clients.count(client_key)) {
 
-//TODO: This should dissapear.
-void server::disconnect_client(int _client_key) {
-
-	if(!clients.count(_client_key)) {
 		throw std::runtime_error("Attempted to disconnect invalid client");
 	}
 
 	//This is starting to seem redundant...
 
 	if(logic) {
-		logic->handle_dissconection(clients.at(_client_key));
+		logic->handle_dissconection(clients.at(client_key));
 	}
 
 	//Well, the key is actually the file descriptor, but that could change.
-	int file_descriptor=clients.at(_client_key).descriptor;
+	int file_descriptor=clients.at(client_key).descriptor;
 
 	close(file_descriptor);
 	FD_CLR(file_descriptor, &in_sockets.set);
-	clients.erase(_client_key);
+	clients.erase(client_key);
 
 	if(log) {
-		tools::info(*log)<<"Client "<<file_descriptor<<" disconnected"<<tools::endl();
+
+		tools::info(*log) << "Client " << file_descriptor << " disconnected" << tools::endl();
 	}
 }
 
@@ -318,6 +331,8 @@ again... So well, we should actually try to compose a message somehow!.
 std::string server::read_from_socket(int _client_descriptor) {
 
 	memset(read_message_buffer, 0, read_message_buffer_size);
+
+	//TODO: This is the part where we fork on stupid ssl things...
 	auto read=recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
 
 	if(read==-1) {
@@ -338,6 +353,11 @@ void server::set_logic(logic_interface& _li) {
 void server::set_log(tools::log& _l) {
 
 	log=&_l;
+}
+
+client_writer server::create_writer() {
+
+	return client_writer{};
 }
 
 //TODO: Suckage: fix the calling point and pass the ai_addr damn it...

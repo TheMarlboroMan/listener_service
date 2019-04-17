@@ -1,14 +1,39 @@
 # listener_service
-Work in progress: trying to make a reusable listener service in C++ which can be injected with arbitrary logic.
+
+Work in progress: trying to make a reusable listener service in C++ which can be 
+injected with arbitrary logic.
 
 ## Dependencies
 
-tools::log
-tools::arg_manager
-tools::string_utils
-tools::text_reader
+This application depends on the libraries located at:
 
-## TODO:
+	https://github.com/TheMarlboroMan/log
+	https://github.com/TheMarlboroMan/tools 
 
-Write a good "build" guide.
-The dependency on text_reader is flaky. string_utils should not depend on them.
+Be sure to build them first!.
+
+## Building
+
+Build these libraries:
+
+- https://github.com/TheMarlboroMan/log
+- https://github.com/TheMarlboroMan/tools 
+
+Take good note of their paths and pass them along to make like:
+
+make all EXT_INCLUDES="-I ../log -I ../tools" EXT_LINK="-L ../log -L ../tools"
+
+If you are bold enough, you may want to build with SSL in which case you must
+use the WITH_SSL flag and define the variable WISH_SSL when building, like so:
+
+make all EXT_INCLUDES="-I ../log -I ../tools" EXT_LINK="-L ../log -L ../tools" WITH_SSL
+
+This will build an extra object and enable the enable_ssl and has_ssl on the 
+server class.
+
+Also, if you are using a current OpenSSL version, make sure to add the WITH_SSL_CURRENT
+flag to your make, so it tries to use TLS_method().
+
+Finally, if you are building with openssl and want to try the example, make sure
+to include the certificate file in the same directory as the example file
+with the "cert.pem" filename.
