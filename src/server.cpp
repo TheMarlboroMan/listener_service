@@ -247,17 +247,28 @@ void server::handle_new_connection() {
 		throw std::runtime_error("Failed on accept for new connection");
 	}
 
+
+	bool is_secure=false;
 	if(has_ssl()) {
 
-		try {	
-			ssl_wrapper->accept(client_descriptor);
-		}
-		catch(openssl_exception& e) {
-			throw std::runtime_error(std::string("SSL connection failed : ")+e.what());
-		}
+		//TODO: Wait, peek first and look for the 22 in the first message byte.
+
+		//TODO: If we are not using SSL, we can skip that, for example, and 
+		//save the SSL status into the client itself, so the server logic
+		//can know what to do with it.
+
+
+//		if(is_secure) {
+			try {	
+				ssl_wrapper->accept(client_descriptor);
+			}
+			catch(openssl_exception& e) {
+				throw std::runtime_error(std::string("SSL connection failed : ")+e.what());
+			}
+//		}
 	}
 
-	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address))} );
+	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address), is_secure)} );
 	FD_SET(client_descriptor, &in_sockets.set);
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 
@@ -336,6 +347,8 @@ again... So well, we should actually try to compose a message somehow!.
 std::string server::read_from_socket(int _client_descriptor) {
 
 	memset(read_message_buffer, 0, read_message_buffer_size);
+
+	//TODO: Again, we would ask if the client is SSL
 
 	auto read=has_ssl()
 		? ssl_wrapper->recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1)

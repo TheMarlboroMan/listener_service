@@ -9,6 +9,7 @@ example_logic::example_logic(server& _s)
 
 void example_logic::handle_new_connection(const connected_client& _c) {
 
+	//TODO: More like _cl.is_secure()
 	//TODO: Could create a message wrapper.
 	if(wrt.has_ssl()) {
 		wrt.write("Welcome to the service: you are using a secure connection\n", _c);

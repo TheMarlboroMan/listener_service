@@ -21,7 +21,14 @@ void client_writer::write(const std::string& _msg, const connected_client& _cl) 
 
 	while(left) {
 
-		int blocksize=nullptr==ssl_wrapper
+		//TODO: Again, we would ask if the client is SSL to choose a method or other.
+		//TODO: If the connection is 
+
+		//TODO: We can be sure that is_secure can only be set if the server has
+		//SSL, which is good.
+		//int blocksize=!_cl.is_secure() 
+
+		int blocksize=/*nullptr==ssl_wrapper*/
 			? send(client_descriptor, _msg.substr(sent, left).c_str(), left, 0)
 			: ssl_wrapper->send(client_descriptor, _msg.substr(sent, left).c_str(), left);
 
