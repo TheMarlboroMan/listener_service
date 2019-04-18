@@ -90,7 +90,7 @@ void server::enable_ssl(const std::string& _certpath, const std::string& _keypat
 	ssl_wrapper.reset(new openssl_wrapper(_certpath, _keypath, log));
 }
 
-bool server::has_ssl() const {
+bool server::is_secure() const {
 
 	return nullptr!=ssl_wrapper;
 }
@@ -248,36 +248,53 @@ void server::handle_new_connection() {
 	}
 
 
-	bool is_secure=false;
-	if(has_ssl()) {
+	char head=0;
+	//TODO: This is a problem: the client DID NOT SAY A FUCKING WORD!
+	//and we cannot wait for it to talk because this call is blocking.
+	//While we wait here, other clients may come in and do nothing, so
+	//this really really cannot be.
+	//Option a) I guess the solution here would be to negotiate a protocol 
+	//between client and server, so the client speaks first and the server 
+	//reacts to it.by setting the appropriate flags... But of course, that
+	//makes this library barely extensible.
+	//Option b) the client status remains unknown until it speaks. in the
+	//meantime, assume that clients have a "secure_verified" flag set to
+	//false, so the implementation chooses what protocol to use. Once the
+	//client speaks, we can do our shit here.
 
-		//TODO: Wait, peek first and look for the 22 in the first message byte.
+	//TODO: I like option B, maybe the client gets some gibberish, but
+	//that means the channel is not good.
 
-		//TODO: If we are not using SSL, we can skip that, for example, and 
-		//save the SSL status into the client itself, so the server logic
-		//can know what to do with it.
+	recv(client_descriptor, &head, 1, MSG_PEEK);
 
+	//22 means start of SSL/TLS handshake.
+	bool client_secure=22==head;
+	if(client_secure) {
 
-//		if(is_secure) {
-			try {	
-				ssl_wrapper->accept(client_descriptor);
-			}
-			catch(openssl_exception& e) {
-				throw std::runtime_error(std::string("SSL connection failed : ")+e.what());
-			}
-//		}
+		if(!is_secure()) {
+			tools::info(*log)<<"Client "<<client_descriptor<<" from "<<ip_from_sockaddr_in(client_address)<<" rejected, uses SSL/TLS when server cannot"<<tools::endl();
+			return;
+		}
+
+		try {
+			ssl_wrapper->accept(client_descriptor);
+		}
+		catch(openssl_exception& e) {
+			throw std::runtime_error(std::string("SSL/TLS connection failed : ")+e.what());
+		}
 	}
 
-	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address), is_secure)} );
+	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address), client_secure)} );
 	FD_SET(client_descriptor, &in_sockets.set);
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 
 	if(logic) {
+tools::debug(*log)<<"WILL DO LOGIC"<<tools::endl();
 		logic->handle_new_connection(clients.at(client_descriptor));
 	}
 
 	if(log) {
-		tools::info(*log)<<"Client "<<client_descriptor<<" connected from "<<clients.at(client_descriptor).ip<<tools::endl();
+		tools::info(*log)<<"Client "<<client_descriptor<<" secure ["<<client_secure<<"] connected from "<<clients.at(client_descriptor).ip<<tools::endl();
 	}
 }
 
@@ -348,9 +365,7 @@ std::string server::read_from_socket(int _client_descriptor) {
 
 	memset(read_message_buffer, 0, read_message_buffer_size);
 
-	//TODO: Again, we would ask if the client is SSL
-
-	auto read=has_ssl()
+	auto read=clients.at(_client_descriptor).is_secure()
 		? ssl_wrapper->recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1)
 		: recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
 

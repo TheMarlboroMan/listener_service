@@ -21,6 +21,9 @@ class example_logic:
 
 	private:
 
+	//!Generates a valid message, in this case, adding a newline.
+	std::string		msg(const std::string&);
+
 	sck::server&		srv;
 	sck::client_writer	wrt;
 

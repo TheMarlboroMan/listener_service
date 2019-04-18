@@ -57,10 +57,11 @@ class server {
 	//!Enables SSL connection. Uses the given certificate and key paths. May throw if
 	//!cannot get it to work. Will throw if called twice. Throws if compiled
 	//!without SSL.
+	//TODO: I'd rather set this on construction.
 	void				enable_ssl(const std::string&, const std::string&);
-	//!Returns true if SSL is enabled. Always returns false if compiled without
-	//!SSL.
-	bool				has_ssl() const;
+	//!Returns true if SSL/TLS is enabled. Always returns false if 
+	//compiled without SSL.
+	bool				is_secure() const;
 
 	private:
 

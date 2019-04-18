@@ -13,14 +13,17 @@ class client_writer {
 
 							client_writer(openssl_wrapper * = nullptr);
 
-	//!Writes the given string to a client.
+	//!Writes the given string to a client. A plain or secure underlying
+	//!connection is automatically chosen based on the client's attributes.
 	void 					write(const std::string&, const connected_client&);
-	bool					has_ssl() const {return nullptr!=ssl_wrapper;} 
+
+	//!Returns true if the writer has SSL capabilities.
+	bool					is_secure() const {return nullptr!=ssl_wrapper;} 
 
 	private:
 
 	//!This is, of course, non-owning and comes from the server.
-	openssl_wrapper *		ssl_wrapper;		
+	openssl_wrapper *		ssl_wrapper;
 };
 
 }
