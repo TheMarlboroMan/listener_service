@@ -13,11 +13,13 @@
 //Test client with netcat 127.0.1.1 16666 or echo "HI" | netcat 127.0.0.1 16666
 int use(int _v) {
 
-#ifdef WITH_SSL
-	std::cout<<"["<<_v<<"] use: ./a.out -p #port [-l #logfile] [-d] [-ssl]\n\t-p Port number\n\t-d Run as daemon -ssl Enable SSL"<<std::endl;
-#else
-	std::cout<<"["<<_v<<"] use: ./a.out -p #port [-l #logfile] [-d]\n\t-p Port number\n\t-d Run as daemon"<<std::endl;
-#endif
+
+
+	std::cout<<"["<<_v<<"] use: ./a.out -p #port [-l #logfile] [-d] [-ssl]\n"
+"\t-p Port number\n"
+"\t-d Run as daemon\n"
+"\t-ssl Enable SSL"<<std::endl;
+
 	return _v;
 }
 
@@ -43,12 +45,19 @@ int main(int argc, char ** argv) {
 			return use(2);
 		}
 
+		sck::server_config cfg;
+
 		int port=std::atoi(argman.get_argument(port_index+1).c_str());
 		if(0==port) {
 			throw std::runtime_error("Invalid port");
 		}
 
-		sck::server srv(port);
+		cfg.port=port;
+		if(-1!=argman.find_index("-ssl")) {
+			cfg.use_ssl_tls=true;
+			cfg.ssl_tls_cert_path="cert.pem";
+			cfg.ssl_tls_key_path="key.pem";
+		}
 
 		//Manage log.
 		tools::log srvlog;
@@ -56,22 +65,12 @@ int main(int argc, char ** argv) {
 		if(-1!=log_index) {
 			srvlog.init(argman.get_argument(log_index+1).c_str());
 			srvlog.activate();
-			srv.set_log(srvlog);
 		}
 
-		//TODO: The initialization order can REALLY FUCK YOU UP... What if you
-		//put the logic before this? Should not be done... either the server
-		//is flexible with the way it works or we fucking build it as SSL
-		//from scratch.
-
-		#ifdef WITH_SSL
-		if(-1!=argman.find_index("-ssl")) {
-			srv.enable_ssl("cert.pem", "key.pem");		
-		}
-		#endif
+		sck::server srv(cfg, -1!=log_index ? &srvlog : nullptr);
 
 		//Manage logic.
-		sck::example_logic exl(srv);
+		sck::example_logic exl(srv, -1!=log_index ? &srvlog : nullptr);
 		srv.set_logic(exl);
 
 		//Daemonize if needed...

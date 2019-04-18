@@ -6,7 +6,7 @@
 
 #ifdef WITH_SSL
 
-#include <openssl/bio.h>
+//#include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -38,22 +38,20 @@ class openssl_exception
 				)) {}
 #endif
 
-		friend class openssl_context;
-		friend class openssl_ssl;
-		friend class openssl_wrapper;
+	friend class openssl_context;
+	friend class openssl_ssl;
+	friend class openssl_wrapper;
 };
 
 class openssl_wrapper {
 
-
-
 	public:
 
-		 				openssl_wrapper(const std::string&, const std::string&, tools::log* =nullptr);
+						openssl_wrapper(const std::string&, const std::string&, tools::log* =nullptr);
 
 	int					recv(int, char *, int);
 	int					send(int, const char *, int);
-	void				accept(int);
+	void					accept(int);
 
 #ifdef WITH_SSL
 

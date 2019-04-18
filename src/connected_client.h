@@ -5,9 +5,10 @@
 
 namespace sck {
 
-struct connected_client {
-	//!Class constructor.
+class connected_client {
 
+	public:
+	//!Class constructor.
 					connected_client(int _fd, const std::string& _ip)
 		:descriptor(_fd), ip(_ip), status(status_types::unverified) {
 	}
@@ -22,7 +23,7 @@ struct connected_client {
 	
 
 	//!File descriptor id.
-	int				descriptor;
+	int			descriptor;
 
 	//!Client ip.
 	std::string		ip;
@@ -31,8 +32,7 @@ struct connected_client {
 
 	//!SSL/TLS status. Cannot be verified until the client speaks to the
 	//!server, hence unverified.
-	enum class status_types{unverified, secure, not_secure}	status;
-
+	enum class 		status_types{unverified, secure, not_secure}	status;
 };
 
 }

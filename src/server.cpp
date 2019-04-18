@@ -9,6 +9,8 @@
 #include <signal.h> 	//Memset.
 #include <sys/un.h>	//Local sockets...
 
+#include "exception.h"
+
 /*
 struct addrinfo {
     int              ai_flags;     // AI_PASSIVE, AI_CANONNAME, etc.
@@ -37,26 +39,22 @@ struct sockaddr_in {
 
 using namespace sck;
 
-server::server(int _p, int _bs, int _b)
+server::server(const server_config& _sc, tools::log * _log)
 	:
-	read_message_buffer_size(_bs), 
-	ssl_wrapper(nullptr),
-	port(_p),
-	backlog(_b) {
-	
-	read_message_buffer=new char[read_message_buffer_size];
-	memset(read_message_buffer, 0, read_message_buffer_size);
+	ssl_wrapper(_sc.use_ssl_tls 
+		? new openssl_wrapper(_sc.ssl_tls_cert_path, _sc.ssl_tls_key_path, _log)
+		: nullptr),
+	reader{_sc.blocksize, ssl_wrapper.get()},
+	port(_sc.port),
+	backlog(_sc.backlog),
+	log(_log) {
+
 }
 
 server::~server() {
 
 	if(log) {
 		tools::info(*log)<<"Cleaning up message buffer..."<<tools::endl();
-	}
-
-	if(read_message_buffer) {
-		delete [] read_message_buffer;
-		read_message_buffer=nullptr;
 	}
 
 	if(log) {
@@ -76,24 +74,11 @@ server::~server() {
 	}
 }
 
-
-void server::enable_ssl(const std::string& _certpath, const std::string& _keypath) {
-
-	if(log) {
-		tools::info(*log)<<"server will enable use of SSL..."<<tools::endl();
-	}
-		
-	if(is_secure()) {
-		throw new std::runtime_error("enable_ssl already called for this server");
-	}
-
-	ssl_wrapper.reset(new openssl_wrapper(_certpath, _keypath, log));
-}
-
 bool server::is_secure() const {
 
 	return nullptr!=ssl_wrapper;
 }
+
 
 /*
 From man getaddrinfo:
@@ -219,7 +204,7 @@ void server::loop() {
 							handle_new_connection();
 						}
 						else { //New data on client file descriptor.
-							handle_client_data(i);
+							handle_client_data(clients.at(i));
 						}
 					}
 				}
@@ -258,37 +243,42 @@ void server::handle_new_connection() {
 	if(log) {
 		tools::info(*log)<<"Client "<<client_descriptor<<" from "<<clients.at(client_descriptor).ip<<tools::endl();
 	}
+
 }
 
-void server::handle_client_data(int _file_descriptor) {
+void server::handle_client_data(connected_client& _client) {
 
 	try {
-		std::string message=read_from_socket(_file_descriptor);
+		std::string message=reader.read(_client);
 
-		//If the connection would imply that the server should upgrade
-		//its SSL/TLS capabilities, the client would be rejected, so
-		//we need to check again... Notice that we can't do much about
-		//the client here: it speaks SSL/TLS and the server does not,
-		//so not even a message can be sent.
-
-		if(logic && clients.count(_file_descriptor)) {
-			logic->handle_client_data(message, clients.at(_file_descriptor));
+		if(logic) {
+			logic->handle_client_data(message, _client);
 		}
 	}
+	catch(incompatible_client_exception& e) {
+
+		if(log) {
+			tools::info(*log)<<"Client "<<_client.descriptor<<" from "<<_client.ip<<" rejected, uses SSL/TLS when server cannot and will be disconnected"<<tools::endl();
+		}
+
+		disconnect_client(_client);
+	}
+	//TODO: Should be some kind of read exception.
 	catch(openssl_exception& e) {
 
 		if(log) {
-			tools::info(*log)<<"Client "<<_file_descriptor<<" SSL failure: "<<e.what()<<tools::endl();
+			tools::info(*log)<<"Client "<<_client.descriptor<<" SSL failure: "<<e.what()<<tools::endl();
 		}
 
-		disconnect_client(clients.at(_file_descriptor));
+		disconnect_client(_client);
 	}
 	catch(client_disconnected_exception& e) {
+
 		if(log) {
-			tools::info(*log)<<"Client "<<_file_descriptor<<" disconnected on client side..."<<tools::endl();
+			tools::info(*log)<<"Client "<<_client.descriptor<<" disconnected on client side..."<<tools::endl();
 		}
 
-		disconnect_client(clients.at(_file_descriptor));
+		disconnect_client(_client);
 	}
 }
 
@@ -319,88 +309,9 @@ void server::disconnect_client(const sck::connected_client& _cl) {
 	}
 }
 
-/*
-From man recv:
-
-If a message is too long to fit in the supplied buffer, excess bytes may be
-discarded depending on the type of socket the message is received from...
-
-We tested it: it is not discarded here, just waiting for us to read_from_socket
-again... So well, we should actually try to compose a message somehow!.
-*/
-
-std::string server::read_from_socket(int _client_descriptor) {
-
-std::cout<<"READ FROM SOCKET "<<_client_descriptor<<std::endl;
-
-	auto& client=clients.at(_client_descriptor);
-	if(client.is_unverified()) {
-
-std::cout<<"UNVERIFIED "<<_client_descriptor<<std::endl;
-
-		char head=0;
-std::cout<<"RECV "<<_client_descriptor<<std::endl;
-		recv(_client_descriptor, &head, 1, MSG_PEEK);
-std::cout<<"DONE RECV "<<_client_descriptor<<std::endl;
-
-		//22 means start of SSL/TLS handshake.
-		if(22==head) {
-			client.set_secure();
-		}
-		else {
-			client.set_not_secure();
-		}
-
-		if(client.is_secure()) {
-
-std::cout<<"SECURE"<<std::endl;
-
-			//Secure clients against server that cannot use SSL/TLS are rejected.
-			//On the other side, downgrading from the server is always possible.
-			if(!is_secure()) {
-				if(log) {
-					tools::info(*log)<<"Client "<<_client_descriptor<<" from "<<client.ip<<" rejected, uses SSL/TLS when server cannot"<<tools::endl();
-				}
-
-std::cout<<"KICK THE BASTARD OUT"<<std::endl;
-
-				disconnect_client(client);
-				return "";
-			}
-
-			try {
-				ssl_wrapper->accept(_client_descriptor);
-			}
-			catch(openssl_exception& e) {
-				throw std::runtime_error(std::string("SSL/TLS connection failed : ")+e.what());
-			}
-		}
-	}
-
-	memset(read_message_buffer, 0, read_message_buffer_size);
-
-	auto read=client.is_secure() && is_secure()
-		? ssl_wrapper->recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1)
-		: recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
-
-	if(read < 0) {
-		throw std::runtime_error("Could not read from client socket in client_descriptor "+std::to_string(_client_descriptor));
-	}
-	else if(read==0) {
-		throw client_disconnected_exception("Client disconnected!");
-	}
-
-	return std::string(read_message_buffer);
-}
-
 void server::set_logic(logic_interface& _li) {
 
 	logic=&_li;
-}
-
-void server::set_log(tools::log& _l) {
-
-	log=&_l;
 }
 
 client_writer server::create_writer() {

@@ -9,7 +9,7 @@ endif
 endif
 
 CFLAGS=-Wno-deprecated -Wall -ansi -pedantic -std=c++11 -Wfatal-errors
-DEPS_MAIN=obj/server.o obj/client_writer.o obj/openssl_wrapper.o
+DEPS_MAIN=obj/server.o obj/client_reader.o obj/client_writer.o obj/openssl_wrapper.o
 DEPS_EXAMPLE=example/obj/example_logic.o 
 
 ifdef WITH_SSL
@@ -40,6 +40,9 @@ obj/server.o: src/server.h src/server.cpp
 
 obj/client_writer.o: src/client_writer.h src/client_writer.cpp
 	g++ $(CFLAGS) $(EXT_INCLUDES) -c src/client_writer.cpp -o obj/client_writer.o
+
+obj/client_reader.o: src/client_reader.h src/client_reader.cpp
+	g++ $(CFLAGS) $(EXT_INCLUDES) -c src/client_reader.cpp -o obj/client_reader.o
 
 #ifdef WITH_SSL
 obj/openssl_wrapper.o: src/openssl_wrapper.h src/openssl_wrapper.cpp

@@ -1,15 +1,18 @@
 #include "example_logic.h"
 
+#include <src/log_tools.h>
+#include "../../src/exception.h"
+
 using namespace sck;
 
-example_logic::example_logic(server& _s)
-	:srv(_s), wrt{srv.create_writer()} {
+example_logic::example_logic(server& _s, tools::log * _log)
+	:srv(_s), wrt{srv.create_writer()}, log(_log) {
 
 }
 
 void example_logic::handle_new_connection(const connected_client& _c) {
 
-	wrt.write(msg("Welcome to the service"), _c);
+	write("Welcome to the service", _c);
 }
 
 void example_logic::handle_client_data(const std::string& _msg, const connected_client& _c) {
@@ -24,24 +27,24 @@ void example_logic::handle_client_data(const std::string& _msg, const connected_
 		? "+ [Ack - "+m+"]"
 		: "- [Ack - "+m+"]";
 
-	wrt.write(msg(ack), _c);
+	write(ack, _c);
 
 	if(m=="help") {
-		wrt.write(msg("Use help for help, stop to shut down the server, exit to disconnect, hi to greet, about to get your info."), _c);
+		write("Use help for help, stop to shut down the server, exit to disconnect, hi to greet, about to get your info.", _c);
 	}
 	else if(m=="about") {
 
 		std::string about=_c.ip+" "+(_c.is_secure() ? "secure" : "not secure");
-		wrt.write(msg(about), _c);
+		write(about, _c);
 	}
 	else if(m=="hi") {
-		wrt.write(msg("Hi there :)"), _c);
+		write("Hi there :)", _c);
 	}
 	else if(m=="stop") {
 		srv.stop();
 	}
 	else if(m=="exit") {
-		wrt.write(msg("Go suck a lemon"), _c);
+		write("Go suck a lemon", _c);
 		srv.disconnect_client(_c);
 	}
 }
@@ -49,11 +52,25 @@ void example_logic::handle_client_data(const std::string& _msg, const connected_
 void example_logic::handle_dissconection(const connected_client& _c) {
 
 	if(_c.is_verified()) {
-		wrt.write(msg("Bye"), _c);
+		write("Bye", _c);
 	}
 }
 
-std::string example_logic::msg(const std::string& _s) {
+void example_logic::write(const std::string& _msg, const connected_client& _c) {
 
-	return _s+"\n";
+	try {
+		wrt.write(_msg+"\n", _c);
+	}
+	catch(openssl_exception& e) {
+
+		if(log) {
+			tools::info(*log)<<"Client "<<_c.descriptor<<" SSL failure: "<<e.what()<<tools::endl();
+		}
+	}
+	catch(write_exception& e) {
+
+		if(log) {
+			tools::info(*log)<<"Client "<<_c.descriptor<<" error: "<<e.what()<<tools::endl();
+		}
+	}
 }

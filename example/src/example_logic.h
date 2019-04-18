@@ -1,6 +1,8 @@
 #ifndef EXAMPLE_LOGIC_H
 #define EXAMPLE_LOGIC_H
 
+#include <src/log.h>
+
 #include "../../src/server.h"
 #include "../../src/logic_interface.h"
 #include "../../src/connected_client.h"
@@ -13,7 +15,7 @@ class example_logic:
 
 	public:
 
-						example_logic(sck::server&);
+						example_logic(sck::server&, tools::log*);
 
 	virtual void 		handle_new_connection(const connected_client&);
 	virtual void 		handle_client_data(const std::string&, const connected_client&);
@@ -21,11 +23,12 @@ class example_logic:
 
 	private:
 
-	//!Generates a valid message, in this case, adding a newline.
-	std::string		msg(const std::string&);
+	void				write(const std::string&, const connected_client&);
 
 	sck::server&		srv;
 	sck::client_writer	wrt;
+	tools::log *		log;
+
 
 };
 }

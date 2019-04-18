@@ -43,3 +43,11 @@ with the "cert.pem" filename.
 Apropos the source: the open_ssl wrapper object will always exist in code, but
 will have different definitions if compiled with or without SSL, so worry not
 about that.
+
+#Generating the certificate and key files:
+
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365
+
+If you'd like no passphrase, add "-nodes"
+
+If you are just testing, add -subj '/CN=localhost'

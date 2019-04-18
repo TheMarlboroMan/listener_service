@@ -11,10 +11,25 @@ openssl_wrapper::openssl_wrapper(const std::string&, const std::string&, tools::
 	throw openssl_exception();
 }
 
+int openssl_wrapper::recv(int, char *, int) {
+
+	return 0;
+}
+
+int openssl_wrapper::send(int, const char *, int) {
+
+	return 0;
+}
+
+void openssl_wrapper::accept(int) {
+
+}
+
+
 //Finishes no SSL version
 #else
 
-openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, const std::string& _keypath, tools::log* _log)
+openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, const std::string& _keypath, tools::log * _log)
 	:context(nullptr), log(_log) {
 
 #ifdef WITH_SSL_CURRENT
@@ -136,7 +151,7 @@ openssl_wrapper::openssl_wrapper(const std::string& _certpath, const std::string
 
 openssl_wrapper::~openssl_wrapper() {
 
-	cleanup();	
+	cleanup();
 }
 
 void openssl_wrapper::cleanup() {
@@ -146,12 +161,6 @@ void openssl_wrapper::cleanup() {
 }
 
 int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
-
-#ifndef WITH_SSL
-
-	return 0;
-
-#else
 
 	if(1!=SSL_set_fd(ssl->ssl, _fd)) {
 		throw openssl_exception("could not set fd", ERR_get_error());
@@ -180,50 +189,42 @@ int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 
 		}
 
+		//TODO: No, throw a read_exception that we can capture...
+		//TODO: Study the other interface, this is interesting...
 		throw openssl_exception("read operation failed: "+msg, ERR_get_error());
 	}
 
 	return bytes_read;
-
-#endif
 }
 
 int openssl_wrapper::send(int _fd, const char * _buffer, int _num) {
 
-#ifndef WITH_SSL
-
-	return 0;
-
-#else
-
 	if(1!=SSL_set_fd(ssl->ssl, _fd)) {
+		//TODO: No, throw a write exception...
 		throw openssl_exception("could not set fd before write operation", ERR_get_error());
 	}
 
 	int bytes_written=SSL_write(ssl->ssl, _buffer, _num);
 
 	if(0 > bytes_written) {
+		//TODO: No, throw a write exception...
 		throw openssl_exception("write operation failed", ERR_get_error());
 	}
 
 	return bytes_written;
-
-#endif
 }
 
 void openssl_wrapper::accept(int _fd) {
 
-#ifdef WITH_SSL
-
 	if(1!=SSL_set_fd(ssl->ssl, _fd)) {
-		throw openssl_exception("could not set perform openssl std_fd procedure before accept", ERR_get_error());
+
+		throw openssl_exception("could not perform openssl std_fd procedure before accept", ERR_get_error());
 	}
 
 	auto accept_res=SSL_accept(ssl->ssl);
 	if(1!=accept_res) {
-		throw openssl_exception("could not set perform openssl accept procedure", ERR_get_error());
+		throw openssl_exception("could not perform openssl accept procedure", ERR_get_error());
 	}
-#endif
 }
 
 //Finishes SSL version.
