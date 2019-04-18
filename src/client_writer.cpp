@@ -8,39 +8,46 @@
 
 using namespace sck;
 
-//TODO: Inject log...
 client_writer::client_writer(openssl_wrapper * _openssl_wrapper)
 	:ssl_wrapper(_openssl_wrapper) {
 
 }
 
-
-void client_writer::write(const std::string& _msg, const connected_client& _cl, bool _allow_downgrade) {
+void client_writer::write(const std::string& _msg, const connected_client& _cl) {
 
 	int 		sent=0,
+				blocksize=0,
 				left=_msg.size(),
 				client_descriptor=_cl.descriptor;
 
 	while(left) {
 
-		bool use_secure=_cl.is_unverified() 
-			? is_secure() 
-			: (is_secure() && !_cl.is_secure() && _allow_downgrade
-				? false
-				: is_secure());
+		try {
+			//Notice that there is no way that the server is not secure and
+			//the client is: these get disconnected.
 
-		int blocksize=use_secure
-			? ssl_wrapper->send(client_descriptor, _msg.substr(sent, left).c_str(), left)
-			: send(client_descriptor, _msg.substr(sent, left).c_str(), left, 0);
+			blocksize=is_secure() && _cl.is_secure()
+				? ssl_wrapper->send(client_descriptor, _msg.substr(sent, left).c_str(), left)
+				: send(client_descriptor, _msg.substr(sent, left), left, 0);
 
-		if(0 > blocksize) {
-
-			//TODO: This is ugly: ssl_wrapper->send throws itself... Perhaps we need a plain wrapper too.
-			throw write_exception(blocksize, is_secure(), _cl.is_secure(), _allow_downgrade, sent, left, translate_error(errno));
+			left-=blocksize;
+			sent+=blocksize;
 		}
-		left-=blocksize;
-		sent+=blocksize;
+		catch(send_exception &e) {
+			throw write_exception(blocksize, is_secure(), _cl.get_readable_status(), _allow_downgrade, sent, left, e.what());
+		}
 	}
+}
+
+int client_writer::send(int _client_descriptor, const std::string& _message, int _len, int _flags) {
+
+	int blocksize=::send(_client_descriptor, _message.c_str(), _len, _flags);
+
+	if(0 > blocksize) {
+		throw send_exception(translate_error(errno), false);
+	}
+
+	return blocksize;
 }
 
 std::string client_writer::translate_error(int _err) const {

@@ -20,7 +20,19 @@ class connected_client {
 	bool			is_not_secure() const {return status_types::not_secure==status;}
 	bool			is_verified() const {return status_types::unverified!=status;}
 	bool			is_unverified() const {return status_types::unverified==status;}
-	
+
+	const char *	get_readable_status() const {
+
+		switch(status) {
+			case status_types::secure: return "secure";
+			case status_types::not_secure: return "not_secure";
+			case status_types::unverified: return "unverified";
+		}
+
+		//Shut up compiler...
+		return "";
+	}
+
 
 	//!File descriptor id.
 	int			descriptor;

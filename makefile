@@ -2,7 +2,7 @@ ifneq ($(MAKECMDGOALS),clean)
 ifndef EXT_INCLUDES
 $(error EXT_INCLUDES is not set, please, set it to the location of the 'log' and 'tools' source files like 'make #target# EXT_INCLUDES="-I ../log -I ../tools"')
 endif
- 
+
 ifndef EXT_LINK
 $(error EXT_LINK is not set, please, set it to the location of the 'log' and 'tools' libraries like 'make #target# EXT_LINK="-L ../log -L ../tools"')
 endif
@@ -10,7 +10,12 @@ endif
 
 CFLAGS=-Wno-deprecated -Wall -ansi -pedantic -std=c++11 -Wfatal-errors
 DEPS_MAIN=obj/server.o obj/client_reader.o obj/client_writer.o obj/openssl_wrapper.o
-DEPS_EXAMPLE=example/obj/example_logic.o 
+DEPS_EXAMPLE=example/obj/example_logic.o
+
+ifdef DEBUG
+CFLAGS+= -g
+endif
+
 
 ifdef WITH_SSL
 CFLAGS+= -DWITH_SSL

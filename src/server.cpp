@@ -41,7 +41,7 @@ using namespace sck;
 
 server::server(const server_config& _sc, tools::log * _log)
 	:
-	ssl_wrapper(_sc.use_ssl_tls 
+	ssl_wrapper(_sc.use_ssl_tls
 		? new openssl_wrapper(_sc.ssl_tls_cert_path, _sc.ssl_tls_key_path, _log)
 		: nullptr),
 	reader{_sc.blocksize, ssl_wrapper.get()},
@@ -218,8 +218,6 @@ void server::loop() {
 
 void server::handle_new_connection() {
 
-tools::debug(*log)<<"handle_new_connection"<<tools::endl();
-
 	sockaddr_in client_address;
 	socklen_t l=sizeof(client_address);
 
@@ -228,49 +226,91 @@ tools::debug(*log)<<"handle_new_connection"<<tools::endl();
 		throw std::runtime_error("Failed on accept for new connection");
 	}
 
-tools::debug(*log)<<"FD"<<client_descriptor<<tools::endl();
-
 	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address))} );
 	FD_SET(client_descriptor, &in_sockets.set);
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 
-	if(logic) {
-tools::debug(*log)<<"logic will handle new connection"<<tools::endl();
-		logic->handle_new_connection(clients.at(client_descriptor));
-tools::debug(*log)<<"logic handled new connection"<<tools::endl();
-	}
-
-	if(log) {
-		tools::info(*log)<<"Client "<<client_descriptor<<" from "<<clients.at(client_descriptor).ip<<tools::endl();
-	}
-
-}
-
-void server::handle_client_data(connected_client& _client) {
-
-tools::debug(*log)<<"handle_client_data"<<tools::endl();
-
+	auto& client=clients.at(client_descriptor);
 	try {
-
-tools::debug(*log)<<"reader will read"<<tools::endl();
-		std::string message=reader.read(_client);
-
-tools::debug(*log)<<"reader did read"<<message<<tools::endl();
-
+		set_client_security(client);
 
 		if(logic) {
-tools::debug(*log)<<"logic will try and handle this"<<tools::endl();
-			logic->handle_client_data(message, _client);
-tools::debug(*log)<<"logic handled this"<<tools::endl();
+			logic->handle_new_connection(client);
+		}
+
+		if(log) {
+			tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<tools::endl();
 		}
 	}
 	catch(incompatible_client_exception& e) {
 
 		if(log) {
-			tools::info(*log)<<"Client "<<_client.descriptor<<" from "<<_client.ip<<" rejected, uses SSL/TLS when server cannot and will be disconnected"<<tools::endl();
+			tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<" rejected, uses SSL/TLS when server cannot and will be disconnected"<<tools::endl();
 		}
 
-		disconnect_client(_client);
+		disconnect_client(client);
+	}
+	catch(openssl_exception &e) {
+
+		if(log) {
+			tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<" caused SSL/TLS exception and will be disconnected: "<<e.what()<<tools::endl();
+		}
+
+		disconnect_client(client);
+	}
+}
+
+void server::set_client_security(connected_client& _client) {
+
+	//A 2 second timeout is be used to try and see if the client says something.
+	//In the case of SSL/TLS connections the client will speak right away to
+	//negotiate the handshake and everything will work out, but not secure
+	//clients will stay silent, hence this timeout.
+
+	struct timeval tv;
+	tv.tv_sec=2;
+	tv.tv_usec= 0;
+	setsockopt(_client.descriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+
+	char head=0;
+	auto recvres=recv(_client.descriptor, &head, 1, MSG_PEEK);
+
+	//Of course, let us reset the timeout.
+	tv.tv_sec=0;
+	setsockopt(_client.descriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+
+	//The client did not speak, we just know it is not secure.
+	if(-1==recvres) {
+		_client.set_not_secure();
+		return;
+	}
+
+	//22 means start of SSL/TLS handshake.
+	if(22==head) {
+
+		//Secure clients connecting to non-secure servers are rejected.
+		if(!is_secure()) {
+			throw incompatible_client_exception();
+		}
+
+		_client.set_secure();
+		ssl_wrapper->accept(_client.descriptor);
+		return;
+	}
+
+	//A client with no secure capabilities spoke before the timeout...
+	_client.set_not_secure();
+}
+
+void server::handle_client_data(connected_client& _client) {
+
+	try {
+
+		std::string message=reader.read(_client);
+
+		if(logic) {
+			logic->handle_client_data(message, _client);
+		}
 	}
 	//TODO: Should be some kind of read exception.
 	catch(openssl_exception& e) {

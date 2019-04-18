@@ -57,7 +57,7 @@ class server {
 	//!Obtains a client writer, imbuing it with any neccesary data.
 	client_writer			create_writer();
 
-	//!Returns true if SSL/TLS is enabled. Always returns false if 
+	//!Returns true if SSL/TLS is enabled. Always returns false if
 	//compiled without SSL.
 	bool				is_secure() const;
 
@@ -71,7 +71,9 @@ class server {
 	void				handle_new_connection();
 	//!Internal handler for messages from existing connections.
 	void				handle_client_data(connected_client&);
-
+	//!After a connection is accepted, the server will try to ascertain if
+	//!the connection is secure or not.
+	void 				set_client_security(connected_client&);
 
 	std::unique_ptr<openssl_wrapper>	ssl_wrapper;
 	client_reader				reader;

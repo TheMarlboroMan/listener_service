@@ -2,6 +2,8 @@
 
 #include <src/log_tools.h>
 
+#include "exception.h"
+
 using namespace sck;
 
 #ifndef WITH_SSL
@@ -48,15 +50,15 @@ openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, 
 
 	if(nullptr==context) {
 
-		throw openssl_exception("could not start openssl context", ERR_get_error()); 
+		throw openssl_exception("could not start openssl context", ERR_get_error());
 	}
 
 	SSL_CTX_set_options(context, SSL_OP_SINGLE_DH_USE);
 
 	//TODO: What is this thing???
-	//SSL_CTX_set_verify(context, SSL_VERIFY_PEER, NULL); 
+	//SSL_CTX_set_verify(context, SSL_VERIFY_PEER, NULL);
 
-	//TODO: 
+	//TODO:
 	//SSL_CTX_load_verify_locations
 
 	if(log) {
@@ -92,7 +94,7 @@ openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, 
 openssl_wrapper::openssl_context::~openssl_context() {
 
 	if(nullptr!=context) {
-		
+
 		if(log) {
 			tools::info(*log)<<"openssl: context will be freed now..."<<tools::endl();
 		}
@@ -105,7 +107,7 @@ openssl_wrapper::openssl_context::~openssl_context() {
 openssl_wrapper::openssl_ssl::openssl_ssl(SSL_CTX * _context, tools::log* _log)
 	:ssl(nullptr), log(_log) {
 
-	ssl=SSL_new(_context);	
+	ssl=SSL_new(_context);
 
 	if(log) {
 		tools::info(*log)<<"openssl: ssl object initialization succeeded..."<<tools::endl();
@@ -184,7 +186,7 @@ int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 			case SSL_ERROR_WANT_CONNECT: 		msg="WANT_CONNECT"; break;
 			case SSL_ERROR_WANT_ACCEPT: 		msg="WANT_ACCEPT"; break;
 			case SSL_ERROR_WANT_X509_LOOKUP: 	msg="WANT_X509_LOOKUP"; break;
-			case SSL_ERROR_SYSCALL:				msg="SYSCALL"; break;			
+			case SSL_ERROR_SYSCALL:				msg="SYSCALL"; break;
 			case SSL_ERROR_SSL:					msg="SSL"; break;
 
 		}
@@ -199,16 +201,19 @@ int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 
 int openssl_wrapper::send(int _fd, const char * _buffer, int _num) {
 
+	if(log) {
+
+		tools::debug(*log)<<"sending '"<<_buffer<<"' ("<<_num<<") to "<<_fd<<tools::endl();
+	}
+
 	if(1!=SSL_set_fd(ssl->ssl, _fd)) {
-		//TODO: No, throw a write exception...
-		throw openssl_exception("could not set fd before write operation", ERR_get_error());
+		throw send_exception(std::string("could not set fd before write operation: ")+ERR_error_string(ERR_get_error(), NULL), true);
 	}
 
 	int bytes_written=SSL_write(ssl->ssl, _buffer, _num);
 
 	if(0 > bytes_written) {
-		//TODO: No, throw a write exception...
-		throw openssl_exception("write operation failed", ERR_get_error());
+		throw send_exception(std::string("write operation failed ")+ERR_error_string(ERR_get_error(), NULL), true);
 	}
 
 	return bytes_written;
@@ -222,10 +227,15 @@ void openssl_wrapper::accept(int _fd) {
 	}
 
 	auto accept_res=SSL_accept(ssl->ssl);
+	if(log) {
+
+		tools::debug(*log)<<"accept_res is "<<accept_res<<tools::endl();
+	}
+
 	if(1!=accept_res) {
 		throw openssl_exception("could not perform openssl accept procedure", ERR_get_error());
 	}
 }
 
 //Finishes SSL version.
-#endif 
+#endif
