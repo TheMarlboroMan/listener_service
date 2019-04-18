@@ -1,6 +1,8 @@
 obj/*
 logs/*
 example/logs/*
+*.sh
+*.log
 
 .vscode
 cert.pem

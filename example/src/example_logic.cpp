@@ -48,7 +48,9 @@ void example_logic::handle_client_data(const std::string& _msg, const connected_
 
 void example_logic::handle_dissconection(const connected_client& _c) {
 
-	wrt.write(msg("Bye"), _c);
+	if(_c.is_verified()) {
+		wrt.write(msg("Bye"), _c);
+	}
 }
 
 std::string example_logic::msg(const std::string& _s) {

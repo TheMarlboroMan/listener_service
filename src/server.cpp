@@ -83,7 +83,7 @@ void server::enable_ssl(const std::string& _certpath, const std::string& _keypat
 		tools::info(*log)<<"server will enable use of SSL..."<<tools::endl();
 	}
 		
-	if(nullptr!=ssl_wrapper) {
+	if(is_secure()) {
 		throw new std::runtime_error("enable_ssl already called for this server");
 	}
 
@@ -267,7 +267,9 @@ void server::handle_client_data(int _file_descriptor) {
 
 		//If the connection would imply that the server should upgrade
 		//its SSL/TLS capabilities, the client would be rejected, so
-		//we need to check again.
+		//we need to check again... Notice that we can't do much about
+		//the client here: it speaks SSL/TLS and the server does not,
+		//so not even a message can be sent.
 
 		if(logic && clients.count(_file_descriptor)) {
 			logic->handle_client_data(message, clients.at(_file_descriptor));
@@ -329,20 +331,39 @@ again... So well, we should actually try to compose a message somehow!.
 
 std::string server::read_from_socket(int _client_descriptor) {
 
+std::cout<<"READ FROM SOCKET "<<_client_descriptor<<std::endl;
+
 	auto& client=clients.at(_client_descriptor);
 	if(client.is_unverified()) {
 
+std::cout<<"UNVERIFIED "<<_client_descriptor<<std::endl;
+
 		char head=0;
+std::cout<<"RECV "<<_client_descriptor<<std::endl;
 		recv(_client_descriptor, &head, 1, MSG_PEEK);
+std::cout<<"DONE RECV "<<_client_descriptor<<std::endl;
 
 		//22 means start of SSL/TLS handshake.
-		22==head ? client.set_secure() : client.set_not_secure();
+		if(22==head) {
+			client.set_secure();
+		}
+		else {
+			client.set_not_secure();
+		}
+
 		if(client.is_secure()) {
+
+std::cout<<"SECURE"<<std::endl;
 
 			//Secure clients against server that cannot use SSL/TLS are rejected.
 			//On the other side, downgrading from the server is always possible.
 			if(!is_secure()) {
-				tools::info(*log)<<"Client "<<_client_descriptor<<" from "<<client.ip<<" rejected, uses SSL/TLS when server cannot"<<tools::endl();
+				if(log) {
+					tools::info(*log)<<"Client "<<_client_descriptor<<" from "<<client.ip<<" rejected, uses SSL/TLS when server cannot"<<tools::endl();
+				}
+
+std::cout<<"KICK THE BASTARD OUT"<<std::endl;
+
 				disconnect_client(client);
 				return "";
 			}
@@ -358,7 +379,7 @@ std::string server::read_from_socket(int _client_descriptor) {
 
 	memset(read_message_buffer, 0, read_message_buffer_size);
 
-	auto read=client.is_secure()
+	auto read=client.is_secure() && is_secure()
 		? ssl_wrapper->recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1)
 		: recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
 

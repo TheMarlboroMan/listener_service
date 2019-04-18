@@ -24,6 +24,7 @@ class logic_interface {
 	//!The client's SSL/TLS info is now known.
 	virtual void 		handle_client_data(const std::string&, const connected_client&)=0;
 	//!Must instruct the application on what to do when a client disconnects.
+	//!The client's SSL/TLS info might or might not be known.
 	virtual void 		handle_dissconection(const connected_client&)=0;
 };
 

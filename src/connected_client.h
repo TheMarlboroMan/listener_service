@@ -14,9 +14,12 @@ struct connected_client {
 
 	void			set_secure() {status=status_types::secure;}
 	void			set_not_secure() {status=status_types::not_secure;}
+
 	bool			is_secure() const {return status_types::secure==status;}
 	bool			is_not_secure() const {return status_types::not_secure==status;}
+	bool			is_verified() const {return status_types::unverified!=status;}
 	bool			is_unverified() const {return status_types::unverified==status;}
+	
 
 	//!File descriptor id.
 	int				descriptor;
