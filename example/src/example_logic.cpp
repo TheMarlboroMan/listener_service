@@ -9,12 +9,7 @@ example_logic::example_logic(server& _s)
 
 void example_logic::handle_new_connection(const connected_client& _c) {
 
-	if(_c.is_secure()) {
-		wrt.write(msg("Welcome to the service: you are using a secure connection"), _c);
-	}
-	else {
-		wrt.write(msg("Welcome to the service"), _c);
-	}
+	wrt.write(msg("Welcome to the service"), _c);
 }
 
 void example_logic::handle_client_data(const std::string& _msg, const connected_client& _c) {
@@ -25,10 +20,19 @@ void example_logic::handle_client_data(const std::string& _msg, const connected_
 		return;
 	}
 
-	wrt.write(msg("[Ack - "+m+"]"), _c);
+	std::string ack=_c.is_secure() 
+		? "+ [Ack - "+m+"]"
+		: "- [Ack - "+m+"]";
+
+	wrt.write(msg(ack), _c);
 
 	if(m=="help") {
-		wrt.write(msg("Use help for help, stop to shut down the server, exit to disconnect, hi to greet."), _c);
+		wrt.write(msg("Use help for help, stop to shut down the server, exit to disconnect, hi to greet, about to get your info."), _c);
+	}
+	else if(m=="about") {
+
+		std::string about=_c.ip+" "+(_c.is_secure() ? "secure" : "not secure");
+		wrt.write(msg(about), _c);
 	}
 	else if(m=="hi") {
 		wrt.write(msg("Hi there :)"), _c);

@@ -247,54 +247,16 @@ void server::handle_new_connection() {
 		throw std::runtime_error("Failed on accept for new connection");
 	}
 
-
-	char head=0;
-	//TODO: This is a problem: the client DID NOT SAY A FUCKING WORD!
-	//and we cannot wait for it to talk because this call is blocking.
-	//While we wait here, other clients may come in and do nothing, so
-	//this really really cannot be.
-	//Option a) I guess the solution here would be to negotiate a protocol 
-	//between client and server, so the client speaks first and the server 
-	//reacts to it.by setting the appropriate flags... But of course, that
-	//makes this library barely extensible.
-	//Option b) the client status remains unknown until it speaks. in the
-	//meantime, assume that clients have a "secure_verified" flag set to
-	//false, so the implementation chooses what protocol to use. Once the
-	//client speaks, we can do our shit here.
-
-	//TODO: I like option B, maybe the client gets some gibberish, but
-	//that means the channel is not good.
-
-	recv(client_descriptor, &head, 1, MSG_PEEK);
-
-	//22 means start of SSL/TLS handshake.
-	bool client_secure=22==head;
-	if(client_secure) {
-
-		if(!is_secure()) {
-			tools::info(*log)<<"Client "<<client_descriptor<<" from "<<ip_from_sockaddr_in(client_address)<<" rejected, uses SSL/TLS when server cannot"<<tools::endl();
-			return;
-		}
-
-		try {
-			ssl_wrapper->accept(client_descriptor);
-		}
-		catch(openssl_exception& e) {
-			throw std::runtime_error(std::string("SSL/TLS connection failed : ")+e.what());
-		}
-	}
-
-	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address), client_secure)} );
+	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address))} );
 	FD_SET(client_descriptor, &in_sockets.set);
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 
 	if(logic) {
-tools::debug(*log)<<"WILL DO LOGIC"<<tools::endl();
 		logic->handle_new_connection(clients.at(client_descriptor));
 	}
 
 	if(log) {
-		tools::info(*log)<<"Client "<<client_descriptor<<" secure ["<<client_secure<<"] connected from "<<clients.at(client_descriptor).ip<<tools::endl();
+		tools::info(*log)<<"Client "<<client_descriptor<<" from "<<clients.at(client_descriptor).ip<<tools::endl();
 	}
 }
 
@@ -303,7 +265,11 @@ void server::handle_client_data(int _file_descriptor) {
 	try {
 		std::string message=read_from_socket(_file_descriptor);
 
-		if(logic) {
+		//If the connection would imply that the server should upgrade
+		//its SSL/TLS capabilities, the client would be rejected, so
+		//we need to check again.
+
+		if(logic && clients.count(_file_descriptor)) {
 			logic->handle_client_data(message, clients.at(_file_descriptor));
 		}
 	}
@@ -363,9 +329,36 @@ again... So well, we should actually try to compose a message somehow!.
 
 std::string server::read_from_socket(int _client_descriptor) {
 
+	auto& client=clients.at(_client_descriptor);
+	if(client.is_unverified()) {
+
+		char head=0;
+		recv(_client_descriptor, &head, 1, MSG_PEEK);
+
+		//22 means start of SSL/TLS handshake.
+		22==head ? client.set_secure() : client.set_not_secure();
+		if(client.is_secure()) {
+
+			//Secure clients against server that cannot use SSL/TLS are rejected.
+			//On the other side, downgrading from the server is always possible.
+			if(!is_secure()) {
+				tools::info(*log)<<"Client "<<_client_descriptor<<" from "<<client.ip<<" rejected, uses SSL/TLS when server cannot"<<tools::endl();
+				disconnect_client(client);
+				return "";
+			}
+
+			try {
+				ssl_wrapper->accept(_client_descriptor);
+			}
+			catch(openssl_exception& e) {
+				throw std::runtime_error(std::string("SSL/TLS connection failed : ")+e.what());
+			}
+		}
+	}
+
 	memset(read_message_buffer, 0, read_message_buffer_size);
 
-	auto read=clients.at(_client_descriptor).is_secure()
+	auto read=client.is_secure()
 		? ssl_wrapper->recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1)
 		: recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
 
