@@ -17,7 +17,7 @@ void example_logic::handle_new_connection(const connected_client& _c) {
 	//and call "disconnect_client".
 
 	_c.is_secure()
-		? write("Welcome to the service, you are using a secure connection", _c);
+		? write("Welcome to the service, you are using a secure connection", _c)
 		: write("Welcome to the service, you are using an insecure connection", _c);
 }
 

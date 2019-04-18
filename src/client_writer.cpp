@@ -34,7 +34,7 @@ void client_writer::write(const std::string& _msg, const connected_client& _cl) 
 			sent+=blocksize;
 		}
 		catch(send_exception &e) {
-			throw write_exception(blocksize, is_secure(), _cl.get_readable_status(), _allow_downgrade, sent, left, e.what());
+			throw write_exception(blocksize, is_secure(), _cl.get_readable_status(), sent, left, e.what());
 		}
 	}
 }
@@ -73,5 +73,4 @@ std::string client_writer::translate_error(int _err) const {
 	}
 
 	return "unknown";
-
 }

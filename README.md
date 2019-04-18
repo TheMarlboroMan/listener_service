@@ -51,3 +51,11 @@ openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365
 If you'd like no passphrase, add "-nodes"
 
 If you are just testing, add -subj '/CN=localhost'
+
+#Implementing:
+
+TODO TODO TODO TODO
+
+About SSL capabilities.
+
+Handling exceptions on write...

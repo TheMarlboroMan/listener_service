@@ -25,7 +25,8 @@ class client_reader {
 
 	private:
 
-	void 					recv(int);
+	int 					recv(int);
+	const char *			translate_error(int) const;
 
 	const int 				read_message_buffer_size;
 	char * 					read_message_buffer=nullptr;

@@ -48,7 +48,6 @@ class write_exception
 		write_exception(int _blocksize,
 			bool _server_secure,
 			const char * _client_status,
-			bool _server_allows_downgrade,
 			int	_sent,
 			int _left,
 			const std::string& _errmsg
@@ -58,9 +57,18 @@ class write_exception
 			+" left: "+std::to_string(_left)
 			+" server_secure: "+std::to_string(_server_secure)
 			+" client_status: "+_client_status
-			+" server_allows_downgrade: "+std::to_string(_server_allows_downgrade)
 			+" errmsg: "+_errmsg
 		) {}
+};
+
+//!Internal exception representing a failure to read. This exception will be
+//!caught by the internals of the listener_service.
+class read_exception
+	:public std::runtime_error {
+	public:
+		read_exception(const std::string& _msg, bool _secure)
+			:std::runtime_error(_msg+" ["+(_secure ? "secure" : "not_secure")+"]") {
+	}
 };
 
 }

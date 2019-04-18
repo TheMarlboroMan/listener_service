@@ -312,11 +312,11 @@ void server::handle_client_data(connected_client& _client) {
 			logic->handle_client_data(message, _client);
 		}
 	}
-	//TODO: Should be some kind of read exception.
-	catch(openssl_exception& e) {
+//TODO: What if we want the service to handle these????
+	catch(read_exception& e) {
 
 		if(log) {
-			tools::info(*log)<<"Client "<<_client.descriptor<<" SSL failure: "<<e.what()<<tools::endl();
+			tools::info(*log)<<"Client "<<_client.descriptor<<" read failure: "<<e.what()<<tools::endl();
 		}
 
 		disconnect_client(_client);

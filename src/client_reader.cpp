@@ -51,7 +51,7 @@ std::string client_reader::read(connected_client& _client) {
 	return std::string(read_message_buffer);
 }
 
-void client_reader::recv(int _client_descriptor) {
+int client_reader::recv(int _client_descriptor) {
 
 	int read=::recv(_client_descriptor, read_message_buffer, read_message_buffer_size-1, 0);
 	if(0==read) {
@@ -60,7 +60,26 @@ void client_reader::recv(int _client_descriptor) {
 	}
 
 	if(-1==read) {
-
-		//TODO: Do the ERRNO thing and throw.
+		throw read_exception(translate_error(errno), false);
 	}
+
+	return read;
+}
+
+const char * client_reader::translate_error(int _err) const {
+
+	switch(_err) {
+		case EAGAIN: return "EAGAIN";
+//		case EWOULDBLOCK: return "EWOULDBLOCK"; Same as EAGAIN... at least in this compiler.
+		case EBADF: return "EBADF";
+		case ECONNREFUSED: return "ECONNREFUSED";
+		case EFAULT: return "EFAULT";
+		case EINTR: return "EINTR";
+		case EINVAL: return "EINVAL";
+		case ENOMEM: return "ENOMEM";
+		case ENOTCONN: return "ENOTCONN";
+		case ENOTSOCK: return "ENOTSOCK";
+	}
+
+	return "unknown";
 }

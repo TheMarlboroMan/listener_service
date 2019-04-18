@@ -165,7 +165,7 @@ void openssl_wrapper::cleanup() {
 int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 
 	if(1!=SSL_set_fd(ssl->ssl, _fd)) {
-		throw openssl_exception("could not set fd", ERR_get_error());
+		throw read_exception(std::string("could not set fd: ")+ERR_error_string(ERR_get_error(), NULL), true);
 	}
 
 	int bytes_read=SSL_read(ssl->ssl, _buffer, _num);
@@ -176,24 +176,22 @@ int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 
 	if(0 >= bytes_read) {
 
-		std::string msg;
+		std::string msg="SSL recv error: ";
 
 		switch(SSL_get_error(ssl->ssl, bytes_read)) {
-			case SSL_ERROR_NONE: 				msg="ok"; break;
-			case SSL_ERROR_ZERO_RETURN: 		msg="ZERO_RETURN"; break;
-			case SSL_ERROR_WANT_READ: 			msg="WANT_READ"; break;
-			case SSL_ERROR_WANT_WRITE: 			msg="WANT_WRITE"; break;
-			case SSL_ERROR_WANT_CONNECT: 		msg="WANT_CONNECT"; break;
-			case SSL_ERROR_WANT_ACCEPT: 		msg="WANT_ACCEPT"; break;
-			case SSL_ERROR_WANT_X509_LOOKUP: 	msg="WANT_X509_LOOKUP"; break;
-			case SSL_ERROR_SYSCALL:				msg="SYSCALL"; break;
-			case SSL_ERROR_SSL:					msg="SSL"; break;
+			case SSL_ERROR_NONE: 				msg+="ok"; break;
+			case SSL_ERROR_ZERO_RETURN: 		msg+="ZERO_RETURN"; break;
+			case SSL_ERROR_WANT_READ: 			msg+="WANT_READ"; break;
+			case SSL_ERROR_WANT_WRITE: 			msg+="WANT_WRITE"; break;
+			case SSL_ERROR_WANT_CONNECT: 		msg+="WANT_CONNECT"; break;
+			case SSL_ERROR_WANT_ACCEPT: 		msg+="WANT_ACCEPT"; break;
+			case SSL_ERROR_WANT_X509_LOOKUP: 	msg+="WANT_X509_LOOKUP"; break;
+			case SSL_ERROR_SYSCALL:				msg+="SYSCALL"; break;
+			case SSL_ERROR_SSL:					msg+="SSL"; break;
 
 		}
 
-		//TODO: No, throw a read_exception that we can capture...
-		//TODO: Study the other interface, this is interesting...
-		throw openssl_exception("read operation failed: "+msg, ERR_get_error());
+		throw read_exception(msg+": "+ERR_error_string(ERR_get_error(), NULL), true);
 	}
 
 	return bytes_read;
