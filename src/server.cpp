@@ -304,6 +304,9 @@ void server::set_client_security(connected_client& _client) {
 
 void server::handle_client_data(connected_client& _client) {
 
+	//Clients that haven't been validated yet should have their messages 
+	//ignored.
+
 	try {
 
 		std::string message=reader.read(_client);
@@ -313,6 +316,7 @@ void server::handle_client_data(connected_client& _client) {
 		}
 	}
 //TODO: What if we want the service to handle these????
+//TODO: I guess we will have to add hooks for that.
 	catch(read_exception& e) {
 
 		if(log) {
@@ -339,8 +343,6 @@ void server::disconnect_client(const sck::connected_client& _cl) {
 
 		throw std::runtime_error("Attempted to disconnect invalid client");
 	}
-
-	//This is starting to seem redundant...
 
 	if(logic) {
 		logic->handle_dissconection(clients.at(client_key));

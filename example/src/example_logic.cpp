@@ -23,6 +23,11 @@ void example_logic::handle_new_connection(const connected_client& _c) {
 
 void example_logic::handle_client_data(const std::string& _msg, const connected_client& _c) {
 
+	if(_c.is_unverified()) {
+
+		return;
+	}
+
 	auto m=_msg;
 	m.pop_back();
 	if(!_msg.size()) {
