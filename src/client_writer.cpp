@@ -8,6 +8,7 @@
 
 using namespace sck;
 
+//TODO: Inject log...
 client_writer::client_writer(openssl_wrapper * _openssl_wrapper)
 	:ssl_wrapper(_openssl_wrapper) {
 
@@ -22,9 +23,11 @@ void client_writer::write(const std::string& _msg, const connected_client& _cl, 
 
 	while(left) {
 
-		bool use_secure=is_secure() && !_cl.is_secure() && _allow_downgrade
-			? false
-			: is_secure();
+		bool use_secure=_cl.is_unverified() 
+			? is_secure() 
+			: (is_secure() && !_cl.is_secure() && _allow_downgrade
+				? false
+				: is_secure());
 
 		int blocksize=use_secure
 			? ssl_wrapper->send(client_descriptor, _msg.substr(sent, left).c_str(), left)

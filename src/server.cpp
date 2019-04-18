@@ -54,10 +54,6 @@ server::server(const server_config& _sc, tools::log * _log)
 server::~server() {
 
 	if(log) {
-		tools::info(*log)<<"Cleaning up message buffer..."<<tools::endl();
-	}
-
-	if(log) {
 		tools::info(*log)<<"Cleaning up clients..."<<tools::endl();
 	}
 
@@ -141,6 +137,7 @@ void server::start() {
 	}
 
 	if(::listen(file_descriptor, backlog)==-1) {
+
 		throw std::runtime_error("Could not set the server to listen");
 	}
 
@@ -182,10 +179,6 @@ void server::loop() {
 
 	while(running) {
 
-		if(log) {
-			tools::info(*log)<<"Still running"<<tools::endl();
-		}
-
 		try {
 			copy_in=in_sockets.set;	//Swap... select may change its values!.
 			timeout.tv_sec=5;
@@ -211,6 +204,7 @@ void server::loop() {
 			}
 		}
 		catch(std::exception &e) {
+
 			if(log) {
 				tools::error(*log)<<"Listener thread caused an exception: "<<e.what()<<tools::endl();
 			}
@@ -224,6 +218,8 @@ void server::loop() {
 
 void server::handle_new_connection() {
 
+tools::debug(*log)<<"handle_new_connection"<<tools::endl();
+
 	sockaddr_in client_address;
 	socklen_t l=sizeof(client_address);
 
@@ -232,12 +228,16 @@ void server::handle_new_connection() {
 		throw std::runtime_error("Failed on accept for new connection");
 	}
 
+tools::debug(*log)<<"FD"<<client_descriptor<<tools::endl();
+
 	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address))} );
 	FD_SET(client_descriptor, &in_sockets.set);
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 
 	if(logic) {
+tools::debug(*log)<<"logic will handle new connection"<<tools::endl();
 		logic->handle_new_connection(clients.at(client_descriptor));
+tools::debug(*log)<<"logic handled new connection"<<tools::endl();
 	}
 
 	if(log) {
@@ -248,11 +248,20 @@ void server::handle_new_connection() {
 
 void server::handle_client_data(connected_client& _client) {
 
+tools::debug(*log)<<"handle_client_data"<<tools::endl();
+
 	try {
+
+tools::debug(*log)<<"reader will read"<<tools::endl();
 		std::string message=reader.read(_client);
 
+tools::debug(*log)<<"reader did read"<<message<<tools::endl();
+
+
 		if(logic) {
+tools::debug(*log)<<"logic will try and handle this"<<tools::endl();
 			logic->handle_client_data(message, _client);
+tools::debug(*log)<<"logic handled this"<<tools::endl();
 		}
 	}
 	catch(incompatible_client_exception& e) {

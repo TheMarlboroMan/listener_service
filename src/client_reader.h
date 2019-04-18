@@ -9,6 +9,7 @@
 
 namespace sck {
 
+//TODO: Inject log.
 class client_reader {
 
 	public:
