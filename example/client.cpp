@@ -53,15 +53,15 @@ int main(int argc, char ** argv) {
 
 		app::client cl(argman.get_argument(host_index+1), port, with_ssl);
 
-		//Get the welcome message... absolutely terrible, but well...
+		//Get the welcome message... absolutely terrible, but well...		
 		std::cout<<"Waiting for server welcome..."<<std::endl;
-		cl.wait_for_answer();
+		std::cout<<cl.wait_for_answer();
 		
 		//TODO: Clear input buffer.
 
 		//And enter the endless loop.
 		std::string line;
-		while(true) {
+		while(!cl.is_done()) {
 			std::cout<<">>";
 			std::getline(std::cin, line);
 

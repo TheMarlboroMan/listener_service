@@ -31,6 +31,7 @@ class client {
 								client(const std::string&, int, bool);
 	void						send_message(const std::string&);								
 	std::string					wait_for_answer();	
+	bool						is_done() const {return done;}
 
 	private:
 
@@ -39,6 +40,7 @@ class client {
 	int							file_descriptor=-1;
 
 	std::unique_ptr<ssl_client> ssl_cl;
+	bool						done=false;
 };
 
 }

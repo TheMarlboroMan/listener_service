@@ -3,6 +3,10 @@
 #include <src/log_tools.h>
 #include "../../src/exception.h"
 
+//TODO: REMOVE
+#include <thread>
+#include <chrono>
+
 using namespace app;
 
 example_logic::example_logic(sck::server& _s, tools::log * _log)
@@ -66,7 +70,8 @@ void example_logic::handle_client_data(const std::string& _msg, const sck::conne
 
 void example_logic::handle_dissconection(const sck::connected_client& _c) {
 
-	write("Bye", _c);
+	//!Is there anybody there to catch this????
+	//write("Bye", _c);
 }
 
 void example_logic::write(const std::string& _msg, const sck::connected_client& _c) {

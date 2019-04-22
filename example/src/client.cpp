@@ -99,9 +99,16 @@ void client::send_message(const std::string& _msg) {
 
 std::string client::receive(bool _non_blocking) {
 
-	if(_non_blocking) {
-		//Set it to non-blocking...	
+	auto set_non_blocking=[this]() {
 		fcntl(file_descriptor, F_SETFL, fcntl(file_descriptor, F_GETFL, 0) | O_NONBLOCK);
+	};
+
+	auto set_blocking=[this]() {
+		fcntl(file_descriptor, F_SETFL, fcntl(file_descriptor, F_GETFL, 0) & ~O_NONBLOCK);
+	};
+
+	if(_non_blocking) {
+		set_non_blocking();
 	}
 
 	std::string result;
@@ -113,14 +120,18 @@ std::string client::receive(bool _non_blocking) {
 		
 		memset(buf, 0, bufsize);
 
+		//This is interesting... There's still shit in there, right???
 		//TODO: If we send "exit", where did our final message go????
 		//TODO: How can we handle the disconnection without it being a simple exception.
+
 		int read=nullptr==ssl_cl
 			? recv(file_descriptor, buf, bufsize, 0)
 			: ssl_cl->recv(buf, bufsize);
 
+		//The server disconnected us...
 		if(0==read) {
-			throw std::runtime_error("receive: server disconnected '"+std::string(buf)+"'");
+			done=true;
+			break;
 		}
 
 		//This is a bit non-standard: we set the socket to nonblocking, 
@@ -135,9 +146,7 @@ std::string client::receive(bool _non_blocking) {
 				break;
 			}
 
-			//Set it to blocking again...	
-			fcntl(file_descriptor, F_SETFL, fcntl(file_descriptor, F_GETFL, 0) & ~O_NONBLOCK);
-
+			set_blocking();
 			throw std::runtime_error(strerror(errno));
 		}
 
@@ -145,9 +154,8 @@ std::string client::receive(bool _non_blocking) {
 	}
 
 	if(_non_blocking) {
-		//Set it to blocking again...	
-		fcntl(file_descriptor, F_SETFL, fcntl(file_descriptor, F_GETFL, 0) & ~O_NONBLOCK);
-	}	
+		set_blocking();
+	}
 
 	delete [] buf;
 	return result;
