@@ -1,6 +1,8 @@
 #include <iostream>
-#include <signal.h>
 #include <cstdio>
+#include <limits>
+
+#include <signal.h>
 
 #include <class/arg_manager.h>
 
@@ -57,7 +59,10 @@ int main(int argc, char ** argv) {
 		std::cout<<"Waiting for server welcome..."<<std::endl;
 		std::cout<<cl.wait_for_answer();
 		
-		//TODO: Clear input buffer.
+		//Clearing input stream...
+//		if(std::cin.rdbuf()->in_avail()) {
+//			std::cin.ignore(std::numeric_limits<std::streamsize>::max());
+//		}
 
 		//And enter the endless loop.
 		std::string line;

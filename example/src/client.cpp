@@ -120,26 +120,24 @@ std::string client::receive(bool _non_blocking) {
 		
 		memset(buf, 0, bufsize);
 
-		//This is interesting... There's still shit in there, right???
-		//TODO: If we send "exit", where did our final message go????
-		//TODO: How can we handle the disconnection without it being a simple exception.
-
 		int read=nullptr==ssl_cl
 			? recv(file_descriptor, buf, bufsize, 0)
 			: ssl_cl->recv(buf, bufsize);
 
-		//The server disconnected us...
+		//The server disconnected us... This can happen anytime as we read the
+		//input buffer, so let us make sure that we don't throw anything if
+		//we don't want these messages discarded.
+		
 		if(0==read) {
 			done=true;
 			break;
 		}
 
-		//This is a bit non-standard: we set the socket to nonblocking, 
-		//in "wait_for_hello" so any
-		//read operation will set the error fflag EWOULDBLOCK or EAGAIN when
-		//there is nothing to read. If that is the case, we can just stop
-		//reading because there is nothing else to read. Think of this as an
-		//alternative to using select statements.
+		//This is fun: we set the socket to nonblocking so any read operation 
+		//will set the error fflag EWOULDBLOCK or EAGAIN when there is nothing 
+		//!to read. If that is the case, we can just stop reading. Think of this 
+		//!as an alternative to using select statements.
+
 		if(-1==read && _non_blocking) {
 
 			if(errno==EWOULDBLOCK || errno==EAGAIN) {
