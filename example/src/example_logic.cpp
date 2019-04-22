@@ -3,9 +3,7 @@
 #include <src/log_tools.h>
 #include "../../src/exception.h"
 
-//TODO: REMOVE
-#include <thread>
-#include <chrono>
+#include <stdio.h>
 
 using namespace app;
 
@@ -65,6 +63,9 @@ void example_logic::handle_client_data(const std::string& _msg, const sck::conne
 	else if(m=="exit") {
 		write("Go suck a lemon", _c);
 		srv.disconnect_client(_c);
+	}
+	else {
+		write("Unkown command. Try help", _c);
 	}
 }
 
