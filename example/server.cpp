@@ -15,7 +15,7 @@ int use(int _v) {
 
 
 
-	std::cout<<"["<<_v<<"] use: ./a.out -p #port [-l #logfile] [-d] [-ssl]\n"
+	std::cout<<"["<<_v<<"] use: ./server.out -p #port [-l #logfile] [-d] [-ssl]\n"
 "\t-p Port number\n"
 "\t-d Run as daemon\n"
 "\t-ssl Enable SSL"<<std::endl;
@@ -70,7 +70,7 @@ int main(int argc, char ** argv) {
 		sck::server srv(cfg, -1!=log_index ? &srvlog : nullptr);
 
 		//Manage logic.
-		sck::example_logic exl(srv, -1!=log_index ? &srvlog : nullptr);
+		app::example_logic exl(srv, -1!=log_index ? &srvlog : nullptr);
 		srv.set_logic(exl);
 
 		//Daemonize if needed...

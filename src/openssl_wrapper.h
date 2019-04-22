@@ -47,15 +47,15 @@ class openssl_wrapper {
 
 	public:
 
-						openssl_wrapper(const std::string&, const std::string&, tools::log* =nullptr);
+							openssl_wrapper(const std::string&, const std::string&, tools::log* =nullptr);
 
-	int					recv(int, char *, int);
-	int					send(int, const char *, int);
+	int						recv(int, char *, int);
+	int						send(int, const char *, int);
 	void					accept(int);
 
 #ifdef WITH_SSL
 
-						~openssl_wrapper();
+							~openssl_wrapper();
 
 	private:
 

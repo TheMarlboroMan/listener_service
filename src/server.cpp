@@ -102,6 +102,7 @@ void server::start() {
 
 	//Get the address info.
 	addrinfo *servinfo=nullptr;
+	//TODO: Specify the IP in which we are listening...
 	//We could use "127.0.0.1", it would not give us the wildcard 0.0.0.0.
 	int getaddrinfo_res=getaddrinfo(nullptr, std::to_string(port).c_str(), &hints, &servinfo);
 	if(getaddrinfo_res != 0) {
@@ -120,13 +121,12 @@ void server::start() {
 				throw std::runtime_error("Unable to force address reuse");
 			}
 
-			if(bind(file_descriptor, p->ai_addr, p->ai_addrlen) == -1) {
-				close(file_descriptor);
-				continue;
+			if(0==bind(file_descriptor, p->ai_addr, p->ai_addrlen)) {
+				address=ip_from_addrinfo(*p);
+				break; //Everything is ok... Break the loop!.
 			}
 
-			address=ip_from_addrinfo(*p);
-			break; //Everything is ok... Break the loop!.
+			close(file_descriptor);			
 		}
 		p=p->ai_next;
 	}
@@ -234,13 +234,15 @@ void server::handle_new_connection() {
 	try {
 		set_client_security(client);
 
+		if(log) {
+			tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<" secure: "<<client.is_secure()<<tools::endl();
+		}
+
 		if(logic) {
 			logic->handle_new_connection(client);
 		}
 
-		if(log) {
-			tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<tools::endl();
-		}
+		
 	}
 	catch(incompatible_client_exception& e) {
 

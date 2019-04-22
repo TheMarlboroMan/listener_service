@@ -53,6 +53,7 @@ openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, 
 		throw openssl_exception("could not start openssl context", ERR_get_error());
 	}
 
+	//Always create a new key when using temporary/ephemeral DH parameter
 	SSL_CTX_set_options(context, SSL_OP_SINGLE_DH_USE);
 
 	//TODO: What is this thing???
@@ -176,8 +177,8 @@ int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 
 	if(0 >= bytes_read) {
 
+/*
 		std::string msg="SSL recv error: ";
-
 		switch(SSL_get_error(ssl->ssl, bytes_read)) {
 			case SSL_ERROR_NONE: 				msg+="ok"; break;
 			case SSL_ERROR_ZERO_RETURN: 		msg+="ZERO_RETURN"; break;
@@ -192,6 +193,8 @@ int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 		}
 
 		throw read_exception(msg+": "+ERR_error_string(ERR_get_error(), NULL), true);
+*/
+		throw read_exception(ERR_error_string(ERR_get_error(), NULL), true);
 	}
 
 	return bytes_read;
@@ -224,13 +227,7 @@ void openssl_wrapper::accept(int _fd) {
 		throw openssl_exception("could not perform openssl std_fd procedure before accept", ERR_get_error());
 	}
 
-	auto accept_res=SSL_accept(ssl->ssl);
-	if(log) {
-
-		tools::debug(*log)<<"accept_res is "<<accept_res<<tools::endl();
-	}
-
-	if(1!=accept_res) {
+	if(1!=SSL_accept(ssl->ssl)) {
 		throw openssl_exception("could not perform openssl accept procedure", ERR_get_error());
 	}
 }

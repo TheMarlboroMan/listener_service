@@ -3,14 +3,14 @@
 #include <src/log_tools.h>
 #include "../../src/exception.h"
 
-using namespace sck;
+using namespace app;
 
-example_logic::example_logic(server& _s, tools::log * _log)
+example_logic::example_logic(sck::server& _s, tools::log * _log)
 	:srv(_s), wrt{srv.create_writer()}, log(_log) {
 
 }
 
-void example_logic::handle_new_connection(const connected_client& _c) {
+void example_logic::handle_new_connection(const sck::connected_client& _c) {
 
 	//In this example, we show different messages. However, it would be easy
 	//to, for example, discard insecure clients: just use the server reference
@@ -21,7 +21,11 @@ void example_logic::handle_new_connection(const connected_client& _c) {
 		: write("Welcome to the service, you are using an insecure connection", _c);
 }
 
-void example_logic::handle_client_data(const std::string& _msg, const connected_client& _c) {
+void example_logic::handle_client_data(const std::string& _msg, const sck::connected_client& _c) {
+
+	if(log) {
+		tools::debug(*log)<<"got '"<<_msg<<"'"<<tools::endl();
+	}
 
 	if(_c.is_unverified()) {
 
@@ -60,17 +64,17 @@ void example_logic::handle_client_data(const std::string& _msg, const connected_
 	}
 }
 
-void example_logic::handle_dissconection(const connected_client& _c) {
+void example_logic::handle_dissconection(const sck::connected_client& _c) {
 
 	write("Bye", _c);
 }
 
-void example_logic::write(const std::string& _msg, const connected_client& _c) {
+void example_logic::write(const std::string& _msg, const sck::connected_client& _c) {
 
 	try {
 		wrt.write(_msg+"\n", _c);
 	}
-	catch(write_exception& e) {
+	catch(sck::write_exception& e) {
 
 		if(log) {
 			tools::info(*log)<<"Client "<<_c.descriptor<<" error: "<<e.what()<<tools::endl();

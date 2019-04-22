@@ -68,6 +68,8 @@ int client_reader::recv(int _client_descriptor) {
 
 const char * client_reader::translate_error(int _err) const {
 
+	//TODO: not really neccesary, chedck perror and family.
+
 	switch(_err) {
 		case EAGAIN: return "EAGAIN";
 //		case EWOULDBLOCK: return "EWOULDBLOCK"; Same as EAGAIN... at least in this compiler.

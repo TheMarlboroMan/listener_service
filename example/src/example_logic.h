@@ -8,22 +8,22 @@
 #include "../../src/connected_client.h"
 #include "../../src/client_writer.h"
 
-namespace sck {
+namespace app {
 
 class example_logic:
-						public logic_interface {
+						public sck::logic_interface {
 
 	public:
 
 						example_logic(sck::server&, tools::log*);
 
-	virtual void 		handle_new_connection(const connected_client&);
-	virtual void 		handle_client_data(const std::string&, const connected_client&);
-	virtual void 		handle_dissconection(const connected_client&);
+	virtual void 		handle_new_connection(const sck::connected_client&);
+	virtual void 		handle_client_data(const std::string&, const sck::connected_client&);
+	virtual void 		handle_dissconection(const sck::connected_client&);
 
 	private:
 
-	void				write(const std::string&, const connected_client&);
+	void				write(const std::string&, const sck::connected_client&);
 
 	sck::server&		srv;
 	sck::client_writer	wrt;

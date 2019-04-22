@@ -10,7 +10,8 @@ endif
 
 CFLAGS=-Wno-deprecated -Wall -ansi -pedantic -std=c++11 -Wfatal-errors
 DEPS_MAIN=obj/server.o obj/client_reader.o obj/client_writer.o obj/openssl_wrapper.o
-DEPS_EXAMPLE=example/obj/example_logic.o
+DEPS_EXAMPLE_SERVER=example/obj/example_logic.o 
+DEPS_EXAMPLE_CLIENT=example/obj/client.o
 
 ifdef DEBUG
 CFLAGS+= -g
@@ -26,11 +27,12 @@ ifdef WITH_SSL_CURRENT
 CFLAGS+= -DWITH_SSL_CURRENT
 endif
 
-all: dirs example
+all: dirs server client
 	echo "All done";
 
 clean:
-	if [ -f example/a.out ]; then rm example/a.out; fi;\
+	if [ -f example/server.out ]; then rm example/server.out; fi;\
+	if [ -f example/client.out ]; then rm example/client.out; fi;\
 	if [ -d obj ]; then rm -rf obj; fi;\
 	if [ -d example/obj ]; then rm -rf example/obj; fi;\
 	if [ -d example/logs ]; then rm -rf example/logs/*; fi;\
@@ -54,8 +56,14 @@ obj/openssl_wrapper.o: src/openssl_wrapper.h src/openssl_wrapper.cpp
 	g++ $(CFLAGS) $(EXT_INCLUDES) -c src/openssl_wrapper.cpp -o obj/openssl_wrapper.o
 #endif
 
-example: $(DEPS_MAIN) $(DEPS_EXAMPLE) example/main.cpp
-	g++ example/main.cpp $(CFLAGS) $(DEPS_MAIN) $(DEPS_EXAMPLE) $(EXT_INCLUDES) $(EXT_LINK) $(SSL_LINK) -llog -ltools
+server: $(DEPS_MAIN) $(DEPS_EXAMPLE_SERVER) example/server.cpp
+	g++ -o server.out example/server.cpp $(CFLAGS) $(DEPS_MAIN) $(DEPS_EXAMPLE_SERVER) $(EXT_INCLUDES) $(EXT_LINK) $(SSL_LINK) -llog -ltools
+
+client: $(DEPS_MAIN) $(DEPS_EXAMPLE_CLIENT) example/client.cpp
+	g++ -o client.out example/client.cpp $(CFLAGS) $(DEPS_MAIN) $(DEPS_EXAMPLE_CLIENT) $(EXT_INCLUDES) $(EXT_LINK) $(SSL_LINK) -llog -ltools
 
 example/obj/example_logic.o: example/src/example_logic.h example/src/example_logic.cpp
 	g++ $(CFLAGS) $(EXT_INCLUDES) -c example/src/example_logic.cpp -o example/obj/example_logic.o
+
+example/obj/client.o: example/src/client.h example/src/client.cpp
+	g++ $(CFLAGS) $(EXT_INCLUDES) -c example/src/client.cpp -o example/obj/client.o

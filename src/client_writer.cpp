@@ -52,6 +52,8 @@ int client_writer::send(int _client_descriptor, const std::string& _message, int
 
 std::string client_writer::translate_error(int _err) const {
 
+	//TODO: not really neccesary, chedck perror and family.
+
 	switch(_err) {
 		case EACCES: return "EACCES";
 		case EAGAIN: return "EAGAIN";
