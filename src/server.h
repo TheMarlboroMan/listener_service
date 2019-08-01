@@ -31,7 +31,9 @@ struct server_config {
 
 	int			port,
 				blocksize=1024,
-				backlog=5;
+				backlog=5,
+				ssl_set_security_seconds=1,
+				ssl_set_security_milliseconds=0;
 	bool			use_ssl_tls=false;
 	std::string		ssl_tls_cert_path,
 				ssl_tls_key_path;
@@ -76,18 +78,19 @@ class server {
 	void 				set_client_security(connected_client&);
 
 	std::unique_ptr<openssl_wrapper>	ssl_wrapper;
-	client_reader				reader;
-	std::map<int, connected_client>	clients;	//!<Maps file descriptors to client data.
+	client_reader						reader;
+	std::map<int, connected_client>		clients;	//!<Maps file descriptors to client data.
 
-	int					file_descriptor=-1,
-						port,
-						backlog;
-	std::string				address;
-	logic_interface	*			logic=nullptr;
-	tools::log *				log=nullptr;
+	server_config		config;
+
+	int					file_descriptor=-1;
+						
+	std::string			address;
+	logic_interface	*	logic=nullptr;
+	tools::log *		log=nullptr;
 
 	struct {
-		fd_set 				set;
+		fd_set 			set;
 		int				max_descriptor=0;
 	}					in_sockets;
 

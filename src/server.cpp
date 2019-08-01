@@ -41,12 +41,12 @@ using namespace sck;
 
 server::server(const server_config& _sc, tools::log * _log)
 	:
+	//TODO: Why don't just keep the sc instance and refer to it?????
 	ssl_wrapper(_sc.use_ssl_tls
 		? new openssl_wrapper(_sc.ssl_tls_cert_path, _sc.ssl_tls_key_path, _log)
 		: nullptr),
 	reader{_sc.blocksize, ssl_wrapper.get()},
-	port(_sc.port),
-	backlog(_sc.backlog),
+	config(_sc),	
 	log(_log) {
 
 }
@@ -104,7 +104,7 @@ void server::start() {
 	addrinfo *servinfo=nullptr;
 	//TODO: Specify the IP in which we are listening...
 	//We could use "127.0.0.1", it would not give us the wildcard 0.0.0.0.
-	int getaddrinfo_res=getaddrinfo(nullptr, std::to_string(port).c_str(), &hints, &servinfo);
+	int getaddrinfo_res=getaddrinfo(nullptr, std::to_string(config.port).c_str(), &hints, &servinfo);
 	if(getaddrinfo_res != 0) {
 		throw std::runtime_error("Failed to get address info :"+std::string(gai_strerror(getaddrinfo_res)));
 	}
@@ -136,13 +136,13 @@ void server::start() {
 		throw std::runtime_error("Could not bind socket! Perhaps the port is still in use?");
 	}
 
-	if(::listen(file_descriptor, backlog)==-1) {
+	if(::listen(file_descriptor, config.backlog)==-1) {
 
 		throw std::runtime_error("Could not set the server to listen");
 	}
 
 	if(log) {
-		tools::info(*log)<<"Server started on "<<address<<":"<<port<<" with FD "<<file_descriptor<<tools::endl();
+		tools::info(*log)<<"Server started on "<<address<<":"<<config.port<<" with FD "<<file_descriptor<<tools::endl();
 	}
 
 	in_sockets.max_descriptor=file_descriptor > in_sockets.max_descriptor ? file_descriptor : in_sockets.max_descriptor;
@@ -270,8 +270,8 @@ void server::set_client_security(connected_client& _client) {
 	//clients will stay silent, hence this timeout.
 
 	struct timeval tv;
-	tv.tv_sec=2;
-	tv.tv_usec= 0;
+	tv.tv_sec=config.ssl_set_security_seconds;
+	tv.tv_usec=config.ssl_set_security_milliseconds;
 	setsockopt(_client.descriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
 	char head=0;
