@@ -55,7 +55,7 @@ class server {
 	//!Forces the disconnection of the given client.
 	void 				disconnect_client(const connected_client&);
 	//!Obtains a client writer, imbuing it with any neccesary data.
-	client_writer			create_writer();
+	client_writer		create_writer();
 
 	//!Returns true if SSL/TLS is enabled. Always returns false if
 	//compiled without SSL.

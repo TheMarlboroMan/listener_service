@@ -6,12 +6,12 @@
 
 namespace sck {
 
+class server;
+
 //!Simple class to write data to a client.
 class client_writer {
 
 	public:
-
-							client_writer(openssl_wrapper * = nullptr);
 
 	//!Writes the given string to a client. A plain or secure underlying
 	//!connection is automatically chosen based on the client and
@@ -23,12 +23,18 @@ class client_writer {
 
 	private:
 
+	//Class constructor is private, this class can only be constructed from "server".
+							client_writer(openssl_wrapper * = nullptr);
+
+
 	//Implementation of unix-style send, wrapped with error handling.
 	int						send(int, const std::string&, int, int=0);
 	std::string				translate_error(int) const;
 
 	//!This is, of course, non-owning and comes from the server.
 	openssl_wrapper *		ssl_wrapper;
+
+	friend class			server;
 };
 
 }
