@@ -57,6 +57,8 @@ int main(int argc, char ** argv) {
 			cfg.use_ssl_tls=true;
 			cfg.ssl_tls_cert_path="cert.pem";
 			cfg.ssl_tls_key_path="key.pem";
+			cfg.ssl_set_security_milliseconds=250;
+			cfg.ssl_set_security_seconds=0;
 		}
 
 		//Manage log.
