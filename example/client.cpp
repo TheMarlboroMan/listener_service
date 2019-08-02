@@ -58,6 +58,7 @@ int main(int argc, char ** argv) {
 		//Get the welcome message... absolutely terrible, but well...		
 		std::cout<<"Waiting for server welcome..."<<std::endl;
 		std::cout<<cl.wait_for_answer();
+		
 		//And wait for the security
 		std::cout<<cl.wait_for_answer();
 
