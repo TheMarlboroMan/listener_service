@@ -13,10 +13,9 @@
 //Test client with netcat 127.0.1.1 16666 or echo "HI" | netcat 127.0.0.1 16666
 int use(int _v) {
 
-
-
 	std::cout<<"["<<_v<<"] use: ./server.out -p #port [-l #logfile] [-d] [-ssl]\n"
 "\t-p Port number\n"
+"\t-l Log file to use\n"
 "\t-d Run as daemon\n"
 "\t-ssl Enable SSL"<<std::endl;
 
@@ -58,7 +57,7 @@ int main(int argc, char ** argv) {
 			cfg.ssl_tls_cert_path="cert.pem";
 			cfg.ssl_tls_key_path="key.pem";
 			cfg.ssl_set_security_milliseconds=250;
-			cfg.ssl_set_security_seconds=0;
+			cfg.ssl_set_security_seconds=5;
 		}
 
 		//Manage log.

@@ -58,7 +58,9 @@ int main(int argc, char ** argv) {
 		//Get the welcome message... absolutely terrible, but well...		
 		std::cout<<"Waiting for server welcome..."<<std::endl;
 		std::cout<<cl.wait_for_answer();
-		
+		//And wait for the security
+		std::cout<<cl.wait_for_answer();
+
 		//Clearing input stream...
 //		if(std::cin.rdbuf()->in_avail()) {
 //			std::cin.ignore(std::numeric_limits<std::streamsize>::max());
@@ -67,9 +69,10 @@ int main(int argc, char ** argv) {
 		//And enter the endless loop.
 		std::string line;
 		while(!cl.is_done()) {
+
+			//TODO: Thing is, this is blocking...
 			std::cout<<">>";
 			std::getline(std::cin, line);
-
 			cl.send_message(line+'\n');
 			std::cout<<cl.wait_for_answer()<<std::endl;
 		}

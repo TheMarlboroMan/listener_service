@@ -1,10 +1,10 @@
 ifneq ($(MAKECMDGOALS),clean)
 ifndef EXT_INCLUDES
-$(error EXT_INCLUDES is not set, please, set it to the location of the 'log' and 'tools' source files like 'make #target# EXT_INCLUDES="-I ../log -I ../tools"')
+$(error EXT_INCLUDES or EXT_LINK is not set, please, set it to the location of the 'log' and 'tools' source files like 'make #target# EXT_INCLUDES="-I ../log -I ../tools" EXT_LINK="-L ../log -L ../tools"')
 endif
 
 ifndef EXT_LINK
-$(error EXT_LINK is not set, please, set it to the location of the 'log' and 'tools' libraries like 'make #target# EXT_LINK="-L ../log -L ../tools"')
+$(error EXT_INCLUDES or EXT_LINK is not set, please, set it to the location of the 'log' and 'tools' source files like 'make #target# EXT_INCLUDES="-I ../log -I ../tools" EXT_LINK="-L ../log -L ../tools"')
 endif
 endif
 
@@ -12,6 +12,7 @@ CFLAGS=-Wno-deprecated -Wall -ansi -pedantic -std=c++11 -Wfatal-errors
 DEPS_MAIN=obj/server.o obj/client_reader.o obj/client_writer.o obj/openssl_wrapper.o
 DEPS_EXAMPLE_SERVER=example/obj/example_logic.o 
 DEPS_EXAMPLE_CLIENT=example/obj/client.o
+LIBS=-llog -ltools -lpthread
 
 ifdef DEBUG
 CFLAGS+= -g
@@ -57,10 +58,10 @@ obj/openssl_wrapper.o: src/openssl_wrapper.h src/openssl_wrapper.cpp
 #endif
 
 server: $(DEPS_MAIN) $(DEPS_EXAMPLE_SERVER) example/server.cpp
-	g++ -o server.out example/server.cpp $(CFLAGS) $(DEPS_MAIN) $(DEPS_EXAMPLE_SERVER) $(EXT_INCLUDES) $(EXT_LINK) $(SSL_LINK) -llog -ltools
+	g++ -o server.out example/server.cpp $(CFLAGS) $(DEPS_MAIN) $(DEPS_EXAMPLE_SERVER) $(EXT_INCLUDES) $(EXT_LINK) $(SSL_LINK) $(LIBS)
 
 client: $(DEPS_MAIN) $(DEPS_EXAMPLE_CLIENT) example/client.cpp
-	g++ -o client.out example/client.cpp $(CFLAGS) $(DEPS_MAIN) $(DEPS_EXAMPLE_CLIENT) $(EXT_INCLUDES) $(EXT_LINK) $(SSL_LINK) -llog -ltools
+	g++ -o client.out example/client.cpp $(CFLAGS) $(DEPS_MAIN) $(DEPS_EXAMPLE_CLIENT) $(EXT_INCLUDES) $(EXT_LINK) $(SSL_LINK) $(LIBS)
 
 example/obj/example_logic.o: example/src/example_logic.h example/src/example_logic.cpp
 	g++ $(CFLAGS) $(EXT_INCLUDES) -c example/src/example_logic.cpp -o example/obj/example_logic.o

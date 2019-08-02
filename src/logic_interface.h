@@ -26,6 +26,11 @@ class logic_interface {
 	//!Must instruct the application on what to do when a client disconnects.
 	//!The client's SSL/TLS info might or might not be known.
 	virtual void 		handle_dissconection(const connected_client&)=0;
+
+	//!Must instruct the application on what to do when a client is deemed
+	//!secure or not secure. At this point, the client's SSL/TLS status is
+	//!definitely known.
+	virtual void 		handle_client_security(const connected_client&, bool)=0;
 };
 
 }

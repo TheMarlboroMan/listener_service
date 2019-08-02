@@ -71,7 +71,7 @@ client::client(const std::string& _host, int _port, bool _secure)
 
 std::string client::wait_for_answer() {
 
-	while(true) {
+	while(true && !done) {	
 
 		std::string message=receive(true);
 		if(message.size()) {
@@ -80,6 +80,8 @@ std::string client::wait_for_answer() {
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
+
+	return "finished / disconnected";
 }
 
 void client::send_message(const std::string& _msg) {
@@ -127,8 +129,9 @@ std::string client::receive(bool _non_blocking) {
 		//The server disconnected us... This can happen anytime as we read the
 		//input buffer, so let us make sure that we don't throw anything if
 		//we don't want these messages discarded.
-		
+
 		if(0==read) {
+			std::cout<<"Got zero bytes, will finish..."<<std::endl;
 			done=true;
 			break;
 		}
@@ -139,6 +142,9 @@ std::string client::receive(bool _non_blocking) {
 		//!as an alternative to using select statements.
 
 		if(-1==read && _non_blocking) {
+
+//			std::cout<<"Non blocking, -1 read , errno="
+//				<<errno<<" B="<<EWOULDBLOCK<<" A="<<EAGAIN<<std::endl;
 
 			if(errno==EWOULDBLOCK || errno==EAGAIN) {
 				break;

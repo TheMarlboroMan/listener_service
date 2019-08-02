@@ -5,6 +5,8 @@
 #include <map>
 #include <memory>
 
+#include <atomic>
+#include <thread>
 #include <netinet/in.h>	//This is for domain adresses.
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -77,6 +79,9 @@ class server {
 	//!the connection is secure or not.
 	void 				set_client_security(connected_client&);
 
+	//!Will call "set_secure on the client", offering also a callback possibility for logic.
+	void				secure_client(connected_client&, bool);
+
 	std::unique_ptr<openssl_wrapper>	ssl_wrapper;
 	client_reader						reader;
 	std::map<int, connected_client>		clients;	//!<Maps file descriptors to client data.
@@ -88,11 +93,23 @@ class server {
 	std::string			address;
 	logic_interface	*	logic=nullptr;
 	tools::log *		log=nullptr;
+	std::atomic<int>	security_thread_count;
 
 	struct {
 		fd_set 			set;
 		int				max_descriptor=0;
 	}					in_sockets;
+
+	//TODO: Document...
+	struct security_thread_count_guard {
+
+		security_thread_count_guard(std::atomic<int>& _count):
+			count{_count} {
+			++count;
+		}
+		~security_thread_count_guard() {--count;}
+		std::atomic<int>&			count;
+	};
 
 	bool				running=false;
 };

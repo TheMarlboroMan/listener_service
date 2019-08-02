@@ -47,7 +47,8 @@ server::server(const server_config& _sc, tools::log * _log)
 		: nullptr),
 	reader{_sc.blocksize, ssl_wrapper.get()},
 	config(_sc),	
-	log(_log) {
+	log(_log),
+	security_thread_count{0} {
 
 }
 
@@ -160,6 +161,14 @@ void server::stop() {
 
 	running=false;
 
+	if(security_thread_count) {
+		if(log) {
+			tools::info(*log)<<"Dangling client security threads detected... waiting. "<<security_thread_count<<" threads remain..."<<tools::endl();		
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(150));
+	}
+
 	if(log) {
 		tools::info(*log)<<"Stopping server now. Will complete the current listening cycle."<<tools::endl();
 	}
@@ -231,40 +240,32 @@ void server::handle_new_connection() {
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 
 	auto& client=clients.at(client_descriptor);
-	try {
-		set_client_security(client);
+	
+	std::thread client_security_thread(&sck::server::set_client_security, this, std::ref(client));
+	client_security_thread.detach();
 
-		if(log) {
-			tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<" secure: "<<client.is_secure()<<tools::endl();
-		}
-
-		if(logic) {
-			logic->handle_new_connection(client);
-		}
-
-		
+	if(log) {
+		tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<" status: "<<client.get_readable_status()<<tools::endl();
 	}
-	catch(incompatible_client_exception& e) {
 
-		if(log) {
-			tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<" rejected, uses SSL/TLS when server cannot and will be disconnected"<<tools::endl();
-		}
-
-		disconnect_client(client);
-	}
-	catch(openssl_exception &e) {
-
-		if(log) {
-			tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<" caused SSL/TLS exception and will be disconnected: "<<e.what()<<tools::endl();
-		}
-
-		disconnect_client(client);
+	if(logic) {
+		logic->handle_new_connection(client);
 	}
 }
 
 void server::set_client_security(connected_client& _client) {
 
-	//A 2 second timeout is be used to try and see if the client says something.
+	if(log) {
+		tools::info(*log)<<"Starting thread to determine client "
+			<<_client.descriptor<<":"<<_client.ip
+			<<" security level, max timeout of "
+			<<config.ssl_set_security_seconds<<"sec and "
+			<<config.ssl_set_security_milliseconds<<"ms"<<tools::endl();
+	}
+
+	security_thread_count_guard guard(security_thread_count);
+
+	//A timeout is be used to try and see if the client says something.
 	//In the case of SSL/TLS connections the client will speak right away to
 	//negotiate the handshake and everything will work out, but not secure
 	//clients will stay silent, hence this timeout.
@@ -281,28 +282,86 @@ void server::set_client_security(connected_client& _client) {
 	tv.tv_sec=0;
 	setsockopt(_client.descriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
+	if(log) {
+		tools::debug(*log)<<"recvres="<<recvres<<tools::endl();
+	}
+
+
 	//The client did not speak, we just know it is not secure.
 	if(-1==recvres) {
-		_client.set_not_secure();
-		return;
-	}
 
-	//22 means start of SSL/TLS handshake.
-	if(22==head) {
-
-		//Secure clients connecting to non-secure servers are rejected.
-		if(!is_secure()) {
-			throw incompatible_client_exception();
+		if(log) {
+			tools::info(*log)<<"Client "
+			<<_client.descriptor<<":"<<_client.ip
+			<<" is deemed not secure by timeout"<<tools::endl();
 		}
 
-		_client.set_secure();
-		ssl_wrapper->accept(_client.descriptor);
+		secure_client(_client, false);		
 		return;
 	}
 
-	//A client with no secure capabilities spoke before the timeout...
-	_client.set_not_secure();
+	try {
+
+		//22 means start of SSL/TLS handshake.
+		if(22==head) {
+
+			//Secure clients connecting to non-secure servers are rejected.
+			if(!is_secure()) {
+				throw incompatible_client_exception();
+			}
+
+			if(log) {
+				tools::info(*log)<<"Client "
+				<<_client.descriptor<<":"<<_client.ip
+				<<" is secure"<<tools::endl();
+			}	
+
+			secure_client(_client, true);
+			ssl_wrapper->accept(_client.descriptor);
+		}
+		else {
+			//A client with no secure capabilities spoke before the timeout...
+			if(log) {
+				tools::info(*log)<<"Client "
+				<<_client.descriptor<<":"<<_client.ip
+				<<" is deemed not secure by invalid handshake sequence"<<tools::endl();
+			}	
+
+			secure_client(_client, false);				
+		}
+	}
+	catch(incompatible_client_exception& e) {
+
+		if(log) {
+			tools::info(*log)<<"Client "<<_client.descriptor<<" from "<<_client.ip<<" rejected, uses SSL/TLS when server cannot and will be disconnected"<<tools::endl();
+		}
+
+		disconnect_client(_client);
+	}
+	catch(openssl_exception &e) {
+
+		if(log) {
+			tools::info(*log)<<"Client "<<_client.descriptor<<" from "<<_client.ip<<" caused SSL/TLS exception and will be disconnected: "<<e.what()<<tools::endl();
+		}
+
+		disconnect_client(_client);
+	}
 }
+
+void server::secure_client(connected_client& _client, bool _secure) {
+
+	if(_secure) {
+		_client.set_secure();
+	}
+	else {
+		_client.set_not_secure();
+	}
+
+	if(logic) {
+		logic->handle_client_security(_client, _secure);
+	}
+}
+			
 
 void server::handle_client_data(connected_client& _client) {
 
