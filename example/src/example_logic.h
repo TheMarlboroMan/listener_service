@@ -21,6 +21,7 @@ class example_logic:
 	virtual void 		handle_client_data(const std::string&, const sck::connected_client&);
 	virtual void 		handle_dissconection(const sck::connected_client&);
 	virtual void 		handle_client_security(const sck::connected_client&, bool);
+	virtual void 		handle_server_shutdown();
 
 	private:
 

@@ -223,6 +223,10 @@ void server::loop() {
 	if(log) {
 		tools::info(*log)<<"Listening stopped"<<tools::endl();
 	}
+
+	if(nullptr!=logic) {
+		logic->handle_server_shutdown();
+	}
 }
 
 void server::handle_new_connection() {

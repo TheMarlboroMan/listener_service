@@ -20,9 +20,11 @@ class logic_interface {
 	//!Must instruct the application on what to do when receiving a new connection.
 	//!Bear in mind that this new client's SSL/TLS info is yet to be confirmed.
 	virtual void 		handle_new_connection(const connected_client&)=0;
+
 	//!Must instruct the application on what to do when getting new data.
 	//!The client's SSL/TLS info is now known.
 	virtual void 		handle_client_data(const std::string&, const connected_client&)=0;
+	
 	//!Must instruct the application on what to do when a client disconnects.
 	//!The client's SSL/TLS info might or might not be known.
 	virtual void 		handle_dissconection(const connected_client&)=0;
@@ -31,6 +33,10 @@ class logic_interface {
 	//!secure or not secure. At this point, the client's SSL/TLS status is
 	//!definitely known.
 	virtual void 		handle_client_security(const connected_client&, bool)=0;
+
+	//!Must instruct the application on what to do when the underlying server
+	//!exits its main loop.
+	virtual void 		handle_server_shutdown()=0;
 };
 
 }

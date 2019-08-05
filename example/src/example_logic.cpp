@@ -108,3 +108,11 @@ void example_logic::write(const std::string& _msg, const sck::connected_client& 
 		}
 	}
 }
+
+
+void example_logic::handle_server_shutdown() {
+
+	if(log) {
+		tools::info(*log)<<"This is the example logic handling the server shutdown"<<tools::endl();
+	}
+}
