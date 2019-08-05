@@ -2,11 +2,11 @@
 #define LOGIC_INTERFACE_H
 
 #include <string>
+#include "exception.h"
 
 namespace sck {
 
 class connected_client;
-class exception;
 
 //!Defines a public interface for logic objects. Logic objects are those who
 //!contain the businness logic of the aplication, independent of all the 

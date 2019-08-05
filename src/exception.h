@@ -32,8 +32,8 @@ class client_disconnected_exception
 class send_exception
 	:public exception {
 	public:
-		send_exception(const std::string& _msg, bool _secure):
-			exception(_msg+" ["+(_secure ? "secure" : "not_secure")+"]") {
+		send_exception(const std::string& _msg, bool _secure)
+			:exception(_msg+" ["+(_secure ? "secure" : "not_secure")+"]") {
 
 			}
 };
