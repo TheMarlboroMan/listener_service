@@ -286,18 +286,13 @@ void server::set_client_security(connected_client& _client) {
 	tv.tv_sec=0;
 	setsockopt(_client.descriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
-	if(log) {
-		tools::debug(*log)<<"recvres="<<recvres<<tools::endl();
-	}
-
-
 	//The client did not speak, we just know it is not secure.
 	if(-1==recvres) {
 
 		if(log) {
 			tools::info(*log)<<"Client "
 			<<_client.descriptor<<":"<<_client.ip
-			<<" is deemed not secure by timeout"<<tools::endl();
+			<<" is deemed not to use TLS by timeout"<<tools::endl();
 		}
 
 		secure_client(_client, false);		
@@ -317,7 +312,7 @@ void server::set_client_security(connected_client& _client) {
 			if(log) {
 				tools::info(*log)<<"Client "
 				<<_client.descriptor<<":"<<_client.ip
-				<<" is secure"<<tools::endl();
+				<<" uses TLS"<<tools::endl();
 			}	
 
 			secure_client(_client, true);
@@ -328,7 +323,7 @@ void server::set_client_security(connected_client& _client) {
 			if(log) {
 				tools::info(*log)<<"Client "
 				<<_client.descriptor<<":"<<_client.ip
-				<<" is deemed not secure by invalid handshake sequence"<<tools::endl();
+				<<" is deemed not to use TLS by invalid handshake sequence"<<tools::endl();
 			}	
 
 			secure_client(_client, false);				
@@ -380,15 +375,15 @@ void server::handle_client_data(connected_client& _client) {
 			logic->handle_client_data(message, _client);
 		}
 	}
-//TODO: What if we want the service to handle these????
-//TODO: I guess we will have to add hooks for that.
 	catch(read_exception& e) {
 
 		if(log) {
 			tools::info(*log)<<"Client "<<_client.descriptor<<" read failure: "<<e.what()<<tools::endl();
 		}
 
-		disconnect_client(_client);
+		if(logic) {
+			logic->handle_exception(e, _client);
+		}
 	}
 	catch(client_disconnected_exception& e) {
 
@@ -396,7 +391,9 @@ void server::handle_client_data(connected_client& _client) {
 			tools::info(*log)<<"Client "<<_client.descriptor<<" disconnected on client side..."<<tools::endl();
 		}
 
-		disconnect_client(_client);
+		if(logic) {
+			logic->handle_exception(e, _client);
+		}
 	}
 }
 

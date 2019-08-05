@@ -96,6 +96,16 @@ void example_logic::handle_client_security(const sck::connected_client& _c, bool
 		: write("Your connection has been deemed non-secure, you can talk now", _c);
 }
 
+void example_logic::handle_exception(sck::exception& _e, const sck::connected_client& _client) {
+
+	if(log) {
+		tools::info(*log)<<"Server exception caught and rethrown: "<<_e.what()<<tools::endl();
+	}
+
+	srv.disconnect_client(_client);
+}
+
+
 void example_logic::write(const std::string& _msg, const sck::connected_client& _c) {
 
 	try {

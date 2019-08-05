@@ -18,7 +18,6 @@ ifdef DEBUG
 CFLAGS+= -g
 endif
 
-
 ifdef WITH_SSL
 CFLAGS+= -DWITH_SSL
 SSL_LINK=-lssl -lcrypto

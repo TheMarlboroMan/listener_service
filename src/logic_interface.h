@@ -6,6 +6,7 @@
 namespace sck {
 
 class connected_client;
+class exception;
 
 //!Defines a public interface for logic objects. Logic objects are those who
 //!contain the businness logic of the aplication, independent of all the 
@@ -37,6 +38,11 @@ class logic_interface {
 	//!Must instruct the application on what to do when the underlying server
 	//!exits its main loop.
 	virtual void 		handle_server_shutdown()=0;
+
+	//!Must instruct the application on what to do when a library exception is
+	//!caught. Currently it is always supported on the read_exception and 
+	//!client_disconnected_exception classes.
+	virtual void		handle_exception(exception&, const connected_client&)=0;
 };
 
 }
