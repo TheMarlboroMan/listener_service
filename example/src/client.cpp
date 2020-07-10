@@ -23,13 +23,13 @@ using namespace app;
 
 client::client(const std::string& _host, int _port, bool _secure)
 	:ssl_cl(nullptr) {
-	
+
 	//Fill up the hints...
 	addrinfo hints;
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family=AF_UNSPEC;			//Will use either IPV4 or IPV6...
 	hints.ai_socktype=SOCK_STREAM;		//For UDP.
-	
+
 	addrinfo *servinfo=nullptr;
 	int getaddrinfo_res=getaddrinfo(_host.c_str(), std::to_string(_port).c_str(), &hints, &servinfo);
 	if(0!=getaddrinfo_res) {
@@ -45,13 +45,13 @@ client::client(const std::string& _host, int _port, bool _secure)
 
 			//Force adress reuse, in case a previous process is still hogging the port.
 			int optval=1;
-			if(-1==setsockopt(file_descriptor, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int))) {				
+			if(-1==setsockopt(file_descriptor, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int))) {
 				throw std::runtime_error("Unable to force address reuse");
 			}
 
 			if(0==connect(file_descriptor, p->ai_addr, p->ai_addrlen)) {
 
-				if(_secure) {	
+				if(_secure) {
 					ssl_cl.reset(new ssl_client(file_descriptor));
 				}
 				break;
@@ -66,12 +66,12 @@ client::client(const std::string& _host, int _port, bool _secure)
 	freeaddrinfo(servinfo);
 	if(-1==file_descriptor) {
 		throw std::runtime_error("Could not connect the socket! Perhaps the port is still in use?");
-	}	
+	}
 }
 
 std::string client::wait_for_answer() {
 
-	while(true && !done) {	
+	while(true && !done) {
 
 		std::string message=receive(true);
 		if(message.size()) {
@@ -114,12 +114,12 @@ std::string client::receive(bool _non_blocking) {
 	}
 
 	std::string result;
-	
+
 	const int bufsize=1024;
 	char * buf=new char[bufsize];
-	
-	while(true) {	
-		
+
+	while(true) {
+
 		memset(buf, 0, bufsize);
 
 		int read=nullptr==ssl_cl
@@ -136,9 +136,9 @@ std::string client::receive(bool _non_blocking) {
 			break;
 		}
 
-		//This is fun: we set the socket to nonblocking so any read operation 
-		//will set the error fflag EWOULDBLOCK or EAGAIN when there is nothing 
-		//!to read. If that is the case, we can just stop reading. Think of this 
+		//This is fun: we set the socket to nonblocking so any read operation
+		//will set the error fflag EWOULDBLOCK or EAGAIN when there is nothing
+		//!to read. If that is the case, we can just stop reading. Think of this
 		//!as an alternative to using select statements.
 
 		if(-1==read && _non_blocking) {
@@ -146,7 +146,7 @@ std::string client::receive(bool _non_blocking) {
 //			std::cout<<"Non blocking, -1 read , errno="
 //				<<errno<<" B="<<EWOULDBLOCK<<" A="<<EAGAIN<<std::endl;
 
-			if(errno==EWOULDBLOCK || errno==EAGAIN) {
+			if( (errno==EWOULDBLOCK) || (errno==EAGAIN)) {
 				break;
 			}
 
@@ -163,13 +163,18 @@ std::string client::receive(bool _non_blocking) {
 
 	delete [] buf;
 	return result;
-} 
+}
 
-ssl_client::ssl_client(int _fd) {
+
 
 #ifndef WITH_SSL
+ssl_client::ssl_client(int) {
+
 	throw std::runtime_error("Client was compiled without SSL/TLS support");
+}
 #else
+
+ssl_client::ssl_client(int _fd) {
 
 std::cout<<"Creating new SSL client..."<<std::endl;
 
@@ -193,7 +198,7 @@ std::cout<<"Creating new SSL client..."<<std::endl;
 	ssl=SSL_new(context);
 
 	if(nullptr==ssl) {
-	
+
 		throw std::runtime_error(std::string("could not start openssl object: ")+ERR_error_string(ERR_get_error(), NULL));
 	}
 
@@ -204,9 +209,9 @@ std::cout<<"Creating new SSL client..."<<std::endl;
 	if(1!=SSL_connect(ssl)) {
 		throw std::runtime_error(std::string("could not do SSL/TLS connect: ")+ERR_error_string(ERR_get_error(), NULL));
 	}
-//End of ssl version...
-#endif
 }
+#endif
+//End of ssl version...
 
 ssl_client::~ssl_client() {
 #ifdef WITH_SSL
@@ -227,24 +232,30 @@ ssl_client::~ssl_client() {
 #endif
 }
 
+
+
+#ifdef WITH_SSL
 int ssl_client::send(const std::string& _msg) {
 
 	int sent=0;
-#ifdef WITH_SSL
 	sent=SSL_write(ssl, _msg.c_str(), _msg.size());
 	if(0 > sent) {
 
 		throw std::runtime_error(std::string("ssl/tls write operation failed ")+ERR_error_string(ERR_get_error(), NULL));
 	}
-#endif
 	return sent;
 }
+#else
+int ssl_client::send(const std::string&) {
+	return 0;
+}
+#endif
 
+#ifdef WITH_SSL
 int ssl_client::recv(char * _buf, int _len) {
 
 	int read=0;
-	
-#ifdef WITH_SSL
+
 	read=SSL_read(ssl, _buf, _len);
 	if(read < 0) {
 
@@ -255,7 +266,11 @@ int ssl_client::recv(char * _buf, int _len) {
 
 		throw std::runtime_error(std::string("ssl/tls read operation failed :")+ERR_error_string(ERR_get_error(), NULL));
 	}
-#endif
 
 	return read;
 }
+#else
+int ssl_client::recv(char * , int ) {
+	return 0;
+}
+#endif

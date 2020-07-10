@@ -1,13 +1,13 @@
 #include "example_logic.h"
-
-#include <src/log_tools.h>
-#include "../../src/exception.h"
+#include <sck/exception.h>
+#include <lm/sentry.h>
 
 #include <stdio.h>
+#include <iostream>
 
 using namespace app;
 
-example_logic::example_logic(sck::server& _s, tools::log * _log)
+example_logic::example_logic(sck::server& _s, lm::logger * _log)
 	:srv(_s), wrt{srv.create_writer()}, log(_log) {
 
 }
@@ -32,11 +32,11 @@ void example_logic::handle_client_data(const std::string& _msg, const sck::conne
 
 	try {
 		if(log) {
-			tools::debug(*log)<<"got '"<<_msg<<"'"<<tools::endl();
+			lm::log(*log, lm::lvl::debug)<<"got '"<<_msg<<"'"<<std::endl;
 		}
 
 		if(_c.is_unverified()) {
-			
+
 			write("Please, don't say anything until verified. Disconnecting now.", _c);
 			srv.disconnect_client(_c);
 			return;
@@ -78,12 +78,12 @@ void example_logic::handle_client_data(const std::string& _msg, const sck::conne
 	}
 	catch(std::exception& e) {
 		if(log) {
-			tools::info(*log)<<"Something failed: "<<e.what()<<tools::endl();
+			lm::log(*log, lm::lvl::info)<<"Something failed: "<<e.what()<<std::endl;
 		}
 	}
 }
 
-void example_logic::handle_dissconection(const sck::connected_client& _c) {
+void example_logic::handle_dissconection(const sck::connected_client& /*_c*/) {
 
 	//!Is there anybody there to catch this????
 	//write("Bye", _c);
@@ -99,7 +99,7 @@ void example_logic::handle_client_security(const sck::connected_client& _c, bool
 void example_logic::handle_exception(sck::exception& _e, const sck::connected_client& _client) {
 
 	if(log) {
-		tools::info(*log)<<"Server exception caught and rethrown: "<<_e.what()<<tools::endl();
+		lm::log(*log, lm::lvl::info)<<"Server exception caught and rethrown: "<<_e.what()<<std::endl;
 	}
 
 	srv.disconnect_client(_client);
@@ -114,7 +114,7 @@ void example_logic::write(const std::string& _msg, const sck::connected_client& 
 	catch(sck::write_exception& e) {
 
 		if(log) {
-			tools::info(*log)<<"Client "<<_c.descriptor<<" error: "<<e.what()<<tools::endl();
+			lm::log(*log, lm::lvl::info)<<"Client "<<_c.descriptor<<" error: "<<e.what()<<std::endl;
 		}
 	}
 }
@@ -123,6 +123,6 @@ void example_logic::write(const std::string& _msg, const sck::connected_client& 
 void example_logic::handle_server_shutdown() {
 
 	if(log) {
-		tools::info(*log)<<"This is the example logic handling the server shutdown"<<tools::endl();
+		lm::log(*log, lm::lvl::debug)<<"This is the example logic handling the server shutdown"<<std::endl;
 	}
 }

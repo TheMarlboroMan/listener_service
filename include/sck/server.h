@@ -1,9 +1,10 @@
-#ifndef SOCKET_SERVER_H
-#define SOCKET_SERVER_H
+#pragma once
 
 #include <string>
 #include <map>
 #include <memory>
+
+#include <lm/logger.h>
 
 #include <atomic>
 #include <thread>
@@ -13,7 +14,6 @@
 #include <netdb.h>
 #include <unistd.h> //read, write...
 
-#include <src/log.h>
 
 #include "connected_client.h"
 #include "logic_interface.h"
@@ -47,7 +47,7 @@ class server {
 	public:
 
 	//!Builds the server with the given port, message buffer size and backlog.
-						server(const server_config&, tools::log * =nullptr);
+						server(const server_config&, lm::logger * =nullptr);
 	//!Class destructor.
 						~server();
 	//!Starts the server: mainly sets up the socket.
@@ -89,10 +89,10 @@ class server {
 	server_config		config;
 
 	int					file_descriptor=-1;
-						
+
 	std::string			address;
 	logic_interface	*	logic=nullptr;
-	tools::log *		log=nullptr;
+	lm::logger *		log=nullptr;
 	std::atomic<int>	security_thread_count;
 
 	struct {
@@ -116,4 +116,4 @@ class server {
 
 }
 
-#endif
+#pragma once

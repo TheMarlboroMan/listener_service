@@ -1,11 +1,10 @@
-#include "client_reader.h"
-
-#include <stdexcept>
+#include <sck/client_reader.h>
+#include <sck/exception.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "exception.h"
+#include <stdexcept>
 
 using namespace sck;
 

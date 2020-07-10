@@ -1,5 +1,6 @@
-#ifndef OPENSSL_WRAPPER_H
-#define OPENSSL_WRAPPER_H
+#pragma once
+
+#include <lm/logger.h>
 
 #include <string>
 #include <memory>
@@ -12,11 +13,11 @@
 
 #endif
 
-#include <src/log.h>
+
 
 namespace sck {
 
-//!Exception thrown from the SSL wrapper if it could not be started.  Can 
+//!Exception thrown from the SSL wrapper if it could not be started.  Can
 //!only be thrown from this module.
 class openssl_exception
 	:public std::runtime_error {
@@ -27,7 +28,7 @@ class openssl_exception
 	openssl_exception()
 			:std::runtime_error("server was compiled without SSL support") {}
 
-#else 
+#else
 
 	openssl_exception(const std::string& _e, int code)
 		:std::runtime_error(
@@ -47,7 +48,7 @@ class openssl_wrapper {
 
 	public:
 
-							openssl_wrapper(const std::string&, const std::string&, tools::log* =nullptr);
+							openssl_wrapper(const std::string&, const std::string&, lm::logger* =nullptr);
 
 	int						recv(int, char *, int);
 	int						send(int, const char *, int);
@@ -59,7 +60,7 @@ class openssl_wrapper {
 
 	private:
 
-	//!Wrapper around the context, to make sure it can be destroyed if 
+	//!Wrapper around the context, to make sure it can be destroyed if
 	//initialization of other parts fail in the openssl_wrapper constructor.
 	struct openssl_context {
 
@@ -95,4 +96,3 @@ class openssl_wrapper {
 
 }
 
-#endif

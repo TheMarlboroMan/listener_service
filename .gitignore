@@ -3,6 +3,7 @@ logs/*
 example/logs/*
 *.sh
 *.log
+build
 
 .vscode
 cert.pem

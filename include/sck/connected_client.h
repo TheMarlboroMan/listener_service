@@ -1,5 +1,4 @@
-#ifndef CONNECTED_CLIENT_H
-#define CONNECTED_CLIENT_H
+#pragma once
 
 #include <string>
 
@@ -49,4 +48,3 @@ class connected_client {
 
 }
 
-#endif

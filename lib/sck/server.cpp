@@ -1,15 +1,14 @@
-#include "server.h"
+#include <sck/server.h>
+#include <sck/exception.h>
 
-#include <iostream>
-
-#include <src/log_tools.h>
+#include <lm/sentry.h>
 
 #include <cstring> 	//Memset.
 #include <arpa/inet.h> 	//inet_ntop.
 #include <signal.h> 	//Memset.
 #include <sys/un.h>	//Local sockets...
 
-#include "exception.h"
+#include <iostream>
 
 /*
 struct addrinfo {
@@ -39,14 +38,14 @@ struct sockaddr_in {
 
 using namespace sck;
 
-server::server(const server_config& _sc, tools::log * _log)
+server::server(const server_config& _sc, lm::logger * _log)
 	:
 	//TODO: Why don't just keep the sc instance and refer to it?????
 	ssl_wrapper(_sc.use_ssl_tls
 		? new openssl_wrapper(_sc.ssl_tls_cert_path, _sc.ssl_tls_key_path, _log)
 		: nullptr),
 	reader{_sc.blocksize, ssl_wrapper.get()},
-	config(_sc),	
+	config(_sc),
 	log(_log),
 	security_thread_count{0} {
 
@@ -55,7 +54,7 @@ server::server(const server_config& _sc, tools::log * _log)
 server::~server() {
 
 	if(log) {
-		tools::info(*log)<<"Cleaning up clients..."<<tools::endl();
+		lm::log(*log, lm::lvl::info)<<"Cleaning up clients..."<<std::endl;
 	}
 
 	for(int i=0; i<=in_sockets.max_descriptor; i++) {
@@ -67,7 +66,7 @@ server::~server() {
 	ssl_wrapper.reset(nullptr);
 
 	if(log) {
-		tools::info(*log)<<"Cleanup completed..."<<tools::endl();
+		lm::log(*log, lm::lvl::info)<<"Cleanup completed..."<<std::endl;
 	}
 }
 
@@ -127,7 +126,7 @@ void server::start() {
 				break; //Everything is ok... Break the loop!.
 			}
 
-			close(file_descriptor);			
+			close(file_descriptor);
 		}
 		p=p->ai_next;
 	}
@@ -143,7 +142,7 @@ void server::start() {
 	}
 
 	if(log) {
-		tools::info(*log)<<"Server started on "<<address<<":"<<config.port<<" with FD "<<file_descriptor<<tools::endl();
+		lm::log(*log, lm::lvl::info)<<"Server started on "<<address<<":"<<config.port<<" with FD "<<file_descriptor<<std::endl;
 	}
 
 	in_sockets.max_descriptor=file_descriptor > in_sockets.max_descriptor ? file_descriptor : in_sockets.max_descriptor;
@@ -163,14 +162,14 @@ void server::stop() {
 
 	if(security_thread_count) {
 		if(log) {
-			tools::info(*log)<<"Dangling client security threads detected... waiting. "<<security_thread_count<<" threads remain..."<<tools::endl();		
+			lm::log(*log, lm::lvl::info)<<"Dangling client security threads detected... waiting. "<<security_thread_count<<" threads remain..."<<std::endl;
 		}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(150));
 	}
 
 	if(log) {
-		tools::info(*log)<<"Stopping server now. Will complete the current listening cycle."<<tools::endl();
+		lm::log(*log, lm::lvl::info)<<"Stopping server now. Will complete the current listening cycle."<<std::endl;
 	}
 }
 
@@ -181,7 +180,7 @@ void server::loop() {
 	timeval timeout{1, 0}; //Struct of 1 seconds. Select will exit once anything is ready, regardless of the timeout.
 
 	if(log) {
-		tools::info(*log)<<"Starting to listen now"<<tools::endl();
+		lm::log(*log, lm::lvl::info)<<"Starting to listen now"<<std::endl;
 	}
 
 	running=true;
@@ -215,13 +214,13 @@ void server::loop() {
 		catch(std::exception &e) {
 
 			if(log) {
-				tools::error(*log)<<"Listener thread caused an exception: "<<e.what()<<tools::endl();
+				lm::log(*log, lm::lvl::info)<<"Listener thread caused an exception: "<<e.what()<<std::endl;
 			}
 		}
 	}
 
 	if(log) {
-		tools::info(*log)<<"Listening stopped"<<tools::endl();
+		lm::log(*log, lm::lvl::info)<<"Listening stopped"<<std::endl;
 	}
 
 	if(nullptr!=logic) {
@@ -244,12 +243,12 @@ void server::handle_new_connection() {
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 
 	auto& client=clients.at(client_descriptor);
-	
+
 	std::thread client_security_thread(&sck::server::set_client_security, this, std::ref(client));
 	client_security_thread.detach();
 
 	if(log) {
-		tools::info(*log)<<"Client "<<client.descriptor<<" from "<<client.ip<<" status: "<<client.get_readable_status()<<tools::endl();
+		lm::log(*log, lm::lvl::info)<<"Client "<<client.descriptor<<" from "<<client.ip<<" status: "<<client.get_readable_status()<<std::endl;
 	}
 
 	if(logic) {
@@ -260,11 +259,11 @@ void server::handle_new_connection() {
 void server::set_client_security(connected_client& _client) {
 
 	if(log) {
-		tools::info(*log)<<"Starting thread to determine client "
+		lm::log(*log, lm::lvl::info)<<"Starting thread to determine client "
 			<<_client.descriptor<<":"<<_client.ip
 			<<" security level, max timeout of "
 			<<config.ssl_set_security_seconds<<"sec and "
-			<<config.ssl_set_security_milliseconds<<"ms"<<tools::endl();
+			<<config.ssl_set_security_milliseconds<<"ms"<<std::endl;
 	}
 
 	security_thread_count_guard guard(security_thread_count);
@@ -290,12 +289,12 @@ void server::set_client_security(connected_client& _client) {
 	if(-1==recvres) {
 
 		if(log) {
-			tools::info(*log)<<"Client "
+			lm::log(*log, lm::lvl::info)<<"Client "
 			<<_client.descriptor<<":"<<_client.ip
-			<<" is deemed not to use TLS by timeout"<<tools::endl();
+			<<" is deemed not to use TLS by timeout"<<std::endl;
 		}
 
-		secure_client(_client, false);		
+		secure_client(_client, false);
 		return;
 	}
 
@@ -310,10 +309,10 @@ void server::set_client_security(connected_client& _client) {
 			}
 
 			if(log) {
-				tools::info(*log)<<"Client "
+				lm::log(*log, lm::lvl::info)<<"Client "
 				<<_client.descriptor<<":"<<_client.ip
-				<<" uses TLS"<<tools::endl();
-			}	
+				<<" uses TLS"<<std::endl;
+			}
 
 			secure_client(_client, true);
 			ssl_wrapper->accept(_client.descriptor);
@@ -321,18 +320,18 @@ void server::set_client_security(connected_client& _client) {
 		else {
 			//A client with no secure capabilities spoke before the timeout...
 			if(log) {
-				tools::info(*log)<<"Client "
+				lm::log(*log, lm::lvl::info)<<"Client "
 				<<_client.descriptor<<":"<<_client.ip
-				<<" is deemed not to use TLS by invalid handshake sequence"<<tools::endl();
-			}	
+				<<" is deemed not to use TLS by invalid handshake sequence"<<std::endl;
+			}
 
-			secure_client(_client, false);				
+			secure_client(_client, false);
 		}
 	}
 	catch(incompatible_client_exception& e) {
 
 		if(log) {
-			tools::info(*log)<<"Client "<<_client.descriptor<<" from "<<_client.ip<<" rejected, uses SSL/TLS when server cannot and will be disconnected"<<tools::endl();
+			lm::log(*log, lm::lvl::info)<<"Client "<<_client.descriptor<<" from "<<_client.ip<<" rejected, uses SSL/TLS when server cannot and will be disconnected"<<std::endl;
 		}
 
 		disconnect_client(_client);
@@ -340,7 +339,7 @@ void server::set_client_security(connected_client& _client) {
 	catch(openssl_exception &e) {
 
 		if(log) {
-			tools::info(*log)<<"Client "<<_client.descriptor<<" from "<<_client.ip<<" caused SSL/TLS exception and will be disconnected: "<<e.what()<<tools::endl();
+			lm::log(*log, lm::lvl::info)<<"Client "<<_client.descriptor<<" from "<<_client.ip<<" caused SSL/TLS exception and will be disconnected: "<<e.what()<<std::endl;
 		}
 
 		disconnect_client(_client);
@@ -360,11 +359,11 @@ void server::secure_client(connected_client& _client, bool _secure) {
 		logic->handle_client_security(_client, _secure);
 	}
 }
-			
+
 
 void server::handle_client_data(connected_client& _client) {
 
-	//Clients that haven't been validated yet should have their messages 
+	//Clients that haven't been validated yet should have their messages
 	//ignored.
 
 	try {
@@ -378,7 +377,7 @@ void server::handle_client_data(connected_client& _client) {
 	catch(read_exception& e) {
 
 		if(log) {
-			tools::info(*log)<<"Client "<<_client.descriptor<<" read failure: "<<e.what()<<tools::endl();
+			lm::log(*log, lm::lvl::info)<<"Client "<<_client.descriptor<<" read failure: "<<e.what()<<std::endl;
 		}
 
 		if(logic) {
@@ -388,7 +387,7 @@ void server::handle_client_data(connected_client& _client) {
 	catch(client_disconnected_exception& e) {
 
 		if(log) {
-			tools::info(*log)<<"Client "<<_client.descriptor<<" disconnected on client side..."<<tools::endl();
+			lm::log(*log, lm::lvl::info)<<"Client "<<_client.descriptor<<" disconnected on client side..."<<std::endl;
 		}
 
 		if(logic) {
@@ -411,14 +410,14 @@ void server::disconnect_client(const sck::connected_client& _cl) {
 	}
 
 	//Well, the key is actually the file descriptor, but that could change.
-	int file_descriptor=clients.at(client_key).descriptor;
+	int client_fd=clients.at(client_key).descriptor;
 
-	close(file_descriptor);
-	FD_CLR(file_descriptor, &in_sockets.set);
+	close(client_fd);
+	FD_CLR(client_fd, &in_sockets.set);
 	clients.erase(client_key);
 
 	if(log) {
-		tools::info(*log) << "Client " << file_descriptor << " disconnected" << tools::endl();
+		lm::log(*log, lm::lvl::info) << "Client " << client_fd << " disconnected" << std::endl;
 	}
 }
 

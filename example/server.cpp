@@ -1,31 +1,20 @@
-#include <iostream>
-#include <stdexcept>
+#include "src/example_logic.h"
+
+#include <sck/server.h>
+
+#include <tools/arg_manager.h>
+#include <lm/file_logger.h>
 
 #include <cstdlib>
 #include <signal.h>
 
-#include "../src/server.h"
-#include "src/example_logic.h"
+#include <iostream>
+#include <stdexcept>
 
-#include <class/arg_manager.h>
-#include <src/log_tools.h>
 
 //Test client with netcat 127.0.1.1 16666 or echo "HI" | netcat 127.0.0.1 16666
-int use(int _v) {
-
-	std::cout<<"["<<_v<<"] use: ./server.out -p #port [-l #logfile] [-d] [-ssl]\n"
-"\t-p Port number\n"
-"\t-l Log file to use\n"
-"\t-d Run as daemon\n"
-"\t-ssl Enable SSL"<<std::endl;
-
-	return _v;
-}
-
-void handle_sigint(int _s) {
-
-	exit(1);/*  */
-}
+int use(int _v);
+void handle_sigint(int _s);
 
 int main(int argc, char ** argv) {
 
@@ -61,23 +50,27 @@ int main(int argc, char ** argv) {
 		}
 
 		//Manage log.
-		tools::log srvlog;
+		std::unique_ptr<lm::logger> logger{nullptr};
+
 		int log_index=argman.find_index("-l");
 		if(-1!=log_index) {
-			srvlog.init(argman.get_argument(log_index+1).c_str());
-			srvlog.activate();
+
+			logger.reset(new lm::file_logger(argman.get_argument(log_index+1).c_str()));
 		}
 
-		sck::server srv(cfg, -1!=log_index ? &srvlog : nullptr);
+		sck::server srv(cfg, logger.get());
 
 		//Manage logic.
-		app::example_logic exl(srv, -1!=log_index ? &srvlog : nullptr);
+		app::example_logic exl(srv, logger.get());
 		srv.set_logic(exl);
 
 		//Daemonize if needed...
 		if(-1!=argman.find_index("-d")) {
 			std::cout<<"Running as daemon"<<std::endl;
-			daemon(1, 0); //do not change working directory, redirect to dev/null.
+			 //do not change working directory, redirect to dev/null.
+			if(0!=daemon(1, 0)) {
+				throw std::runtime_error("Could not daemonize");
+			}
 		}
 
 		srv.start();
@@ -92,3 +85,18 @@ int main(int argc, char ** argv) {
 	}
 }
 
+int use(int _v) {
+
+	std::cout<<"["<<_v<<"] use: ./server.out -p #port [-l #logfile] [-d] [-ssl]\n"
+"\t-p Port number\n"
+"\t-l Log file to use\n"
+"\t-d Run as daemon\n"
+"\t-ssl Enable SSL"<<std::endl;
+
+	return _v;
+}
+
+void handle_sigint(int /*_s*/) {
+
+	exit(1);/*  */
+}

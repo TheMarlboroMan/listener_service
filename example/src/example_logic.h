@@ -1,12 +1,11 @@
-#ifndef EXAMPLE_LOGIC_H
-#define EXAMPLE_LOGIC_H
+#pragma once
 
-#include <src/log.h>
+#include <sck/server.h>
+#include <sck/logic_interface.h>
+#include <sck/connected_client.h>
+#include <sck/client_writer.h>
 
-#include "../../src/server.h"
-#include "../../src/logic_interface.h"
-#include "../../src/connected_client.h"
-#include "../../src/client_writer.h"
+#include <lm/logger.h>
 
 namespace app {
 
@@ -15,7 +14,7 @@ class example_logic:
 
 	public:
 
-						example_logic(sck::server&, tools::log*);
+						example_logic(sck::server&, lm::logger*);
 
 	virtual void 		handle_new_connection(const sck::connected_client&);
 	virtual void 		handle_client_data(const std::string&, const sck::connected_client&);
@@ -30,9 +29,6 @@ class example_logic:
 
 	sck::server&		srv;
 	sck::client_writer	wrt;
-	tools::log *		log;
-
-
+	lm::logger *		log;
 };
 }
-#endif

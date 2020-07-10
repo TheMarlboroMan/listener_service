@@ -1,14 +1,13 @@
-#include "openssl_wrapper.h"
+#include <sck/openssl_wrapper.h>
+#include <sck/exception.h>
 
-#include <src/log_tools.h>
-
-#include "exception.h"
+#include <lm/logger.h>
 
 using namespace sck;
 
 #ifndef WITH_SSL
 
-openssl_wrapper::openssl_wrapper(const std::string&, const std::string&, tools::log*) {
+openssl_wrapper::openssl_wrapper(const std::string&, const std::string&, lm::logger*) {
 
 	throw openssl_exception();
 }
@@ -31,19 +30,19 @@ void openssl_wrapper::accept(int) {
 //Finishes no SSL version
 #else
 
-openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, const std::string& _keypath, tools::log * _log)
+openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, const std::string& _keypath, lm::logger * _log)
 	:context(nullptr), log(_log) {
 
 #ifdef WITH_SSL_CURRENT
 	if(log) {
-		tools::info(*log)<<"openssl: context using TLS_method..."<<tools::endl();
+		lm::log(*_logger, lm::lvl::info)<<"openssl: context using TLS_method..."<<std::endl;
 	}
 
 	context=SSL_CTX_new(TLS_method());
 #else
 
 	if(log) {
-		tools::info(*log)<<"openssl: context using SSLv23_server_method..."<<tools::endl();
+		lm::log(*_logger, lm::lvl::info)<<<<"openssl: context using SSLv23_server_method..."<<std::endl;
 	}
 	context=SSL_CTX_new(SSLv23_server_method());
 #endif
@@ -63,7 +62,7 @@ openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, 
 	//SSL_CTX_load_verify_locations
 
 	if(log) {
-		tools::info(*log)<<"openssl: context will use certificate file "<<_certpath<<" for cert..."<<tools::endl();
+		lm::log(*_logger, lm::lvl::info)<<"openssl: context will use certificate file "<<_certpath<<" for cert..."<<std::endl;
 	}
 
 	if(1!=SSL_CTX_use_certificate_file(context, _certpath.c_str(), SSL_FILETYPE_PEM)) {
@@ -72,11 +71,11 @@ openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, 
 	}
 
 	if(log) {
-		tools::info(*log)<<"openssl: context use of certificate succeeded..."<<tools::endl();
+		lm::log(*_logger, lm::lvl::info)<<<<"openssl: context use of certificate succeeded..."<<std::endl;
 	}
 
 	if(log) {
-		tools::info(*log)<<"openssl: context will use file "<<_keypath<<" for private key..."<<tools::endl();
+		lm::log(*_logger, lm::lvl::info)<<"openssl: context will use file "<<_keypath<<" for private key..."<<std::endl;
 	}
 
 	if(1!=SSL_CTX_use_PrivateKey_file(context, _keypath.c_str(), SSL_FILETYPE_PEM)) {
@@ -88,7 +87,7 @@ openssl_wrapper::openssl_context::openssl_context(const std::string& _certpath, 
 	//SSL_CTX_check_private_key
 
 	if(log) {
-		tools::info(*log)<<"openssl: context use of key succeeded..."<<tools::endl();
+		lm::log(*_logger, lm::lvl::info)<<<<"openssl: context use of key succeeded..."<<std::endl;
 	}
 }
 
@@ -97,7 +96,7 @@ openssl_wrapper::openssl_context::~openssl_context() {
 	if(nullptr!=context) {
 
 		if(log) {
-			tools::info(*log)<<"openssl: context will be freed now..."<<tools::endl();
+			lm::log(*_logger, lm::lvl::info)<<"openssl: context will be freed now..."<<std::endl;
 		}
 		SSL_CTX_free(context);
 	}
@@ -105,13 +104,13 @@ openssl_wrapper::openssl_context::~openssl_context() {
 	context=nullptr;
 }
 
-openssl_wrapper::openssl_ssl::openssl_ssl(SSL_CTX * _context, tools::log* _log)
+openssl_wrapper::openssl_ssl::openssl_ssl(SSL_CTX * _context, lm::logger* _log)
 	:ssl(nullptr), log(_log) {
 
 	ssl=SSL_new(_context);
 
 	if(log) {
-		tools::info(*log)<<"openssl: ssl object initialization succeeded..."<<tools::endl();
+		lm::log(*_logger, lm::lvl::info)<<"openssl: ssl object initialization succeeded..."<<std::endl;
 	}
 
 	if(nullptr==ssl) {
@@ -125,7 +124,7 @@ openssl_wrapper::openssl_ssl::~openssl_ssl() {
 	if(nullptr!=ssl) {
 
 		if(log) {
-			tools::info(*log)<<"openssl: ssl object will be freed now..."<<tools::endl();
+			lm::log(*_logger, lm::lvl::info)<<"openssl: ssl object will be freed now..."<<std::endl;
 		}
 		SSL_shutdown(ssl);
 		SSL_free(ssl);
@@ -134,7 +133,7 @@ openssl_wrapper::openssl_ssl::~openssl_ssl() {
 	ssl=nullptr;
 }
 
-openssl_wrapper::openssl_wrapper(const std::string& _certpath, const std::string& _keypath, tools::log * _log)
+openssl_wrapper::openssl_wrapper(const std::string& _certpath, const std::string& _keypath, lm::logger * _log)
 	:context(nullptr), ssl(nullptr), log(_log) {
 
 	try {
@@ -172,7 +171,7 @@ int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 	int bytes_read=SSL_read(ssl->ssl, _buffer, _num);
 
 	if(log) {
-		tools::info(*log)<<"openssl: recv got "<<bytes_read<<" bytes and "<<_buffer<<tools::endl();
+		lm::log(*_logger, lm::lvl::info)<<"openssl: recv got "<<bytes_read<<" bytes and "<<_buffer<<std::endl
 	}
 
 	if(0 >= bytes_read) {
@@ -203,8 +202,7 @@ int openssl_wrapper::recv(int _fd, char * _buffer, int _num) {
 int openssl_wrapper::send(int _fd, const char * _buffer, int _num) {
 
 	if(log) {
-
-		tools::debug(*log)<<"sending '"<<_buffer<<"' ("<<_num<<") to "<<_fd<<tools::endl();
+lm::log(*_logger, lm::lvl::debug)<<"sending '"<<_buffer<<"' ("<<_num<<") to "<<_fd<<std::endl;
 	}
 
 	if(1!=SSL_set_fd(ssl->ssl, _fd)) {

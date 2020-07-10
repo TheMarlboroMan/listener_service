@@ -1,5 +1,4 @@
-#ifndef CLIENT_WRITER_H
-#define CLIENT_WRITER_H
+#pragma once
 
 #include "connected_client.h"
 #include "openssl_wrapper.h"
@@ -39,4 +38,3 @@ class client_writer {
 
 }
 
-#endif

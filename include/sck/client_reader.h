@@ -1,5 +1,4 @@
-#ifndef CLIENT_READER_H
-#define CLIENT_READER_H
+#pragma once
 
 #include <string>
 
@@ -36,4 +35,3 @@ class client_reader {
 };
 
 }
-#endif

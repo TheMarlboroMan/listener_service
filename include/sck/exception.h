@@ -1,5 +1,4 @@
-#ifndef LISTENER_SERVICE_EXCEPTION_H
-#define LISTENER_SERVICE_EXCEPTION_H
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -62,7 +61,7 @@ class write_exception
 //!Internal exception representing a failure to read. This exception will be
 //!caught by the internals of the listener_service but can be exposed through
 //!the handle_exception method of any logic implementation. Will be thrown in
-//!the server's "handle_client_data", before the logic implementation of 
+//!the server's "handle_client_data", before the logic implementation of
 //!"handle_client_data" is called.
 class read_exception
 	:public exception {
@@ -74,7 +73,7 @@ class read_exception
 
 //!Exception that denotes a client using a secure connection trying to contact
 //!a server that does not have security enabled. This is a "private" exception
-//!that will be handled by the server and will cause the client to be 
+//!that will be handled by the server and will cause the client to be
 //!disconnnected.
 class incompatible_client_exception
 	:public exception {
@@ -87,4 +86,3 @@ class incompatible_client_exception
 
 
 }
-#endif

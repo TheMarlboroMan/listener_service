@@ -1,30 +1,18 @@
+#include "src/client.h"
+
+#include <tools/arg_manager.h>
+
+#include <signal.h>
+
 #include <iostream>
 #include <cstdio>
 #include <limits>
 
-#include <signal.h>
-
-#include <class/arg_manager.h>
-
-#include "src/client.h"
 
 
 //Test client with netcat 127.0.1.1 16666 or echo "HI" | netcat 127.0.0.1 16666
-int use(int _v) {
-
-	std::cout<<"["<<_v<<"] use: ./client.out -h #host -p #port [-ssl]\n"
-"\t-h Host name\n"
-"\t-p Port number\n"
-"\t-ssl Enable SSL"<<std::endl;
-
-	return _v;
-}
-
-void handle_sigint(int _s) {
-
-	exit(1);
-}
-
+int use(int _v);
+void handle_sigint(int _s);
 
 int main(int argc, char ** argv) {
 
@@ -55,10 +43,10 @@ int main(int argc, char ** argv) {
 
 		app::client cl(argman.get_argument(host_index+1), port, with_ssl);
 
-		//Get the welcome message... absolutely terrible, but well...		
+		//Get the welcome message... absolutely terrible, but well...
 		std::cout<<"Waiting for server welcome..."<<std::endl;
 		std::cout<<cl.wait_for_answer();
-		
+
 		//And wait for the security
 		std::cout<<cl.wait_for_answer();
 
@@ -77,7 +65,7 @@ int main(int argc, char ** argv) {
 			cl.send_message(line+'\n');
 			std::cout<<cl.wait_for_answer()<<std::endl;
 		}
-		
+
 		return 0;
 	}
 	catch(std::exception &e) {
@@ -85,4 +73,19 @@ int main(int argc, char ** argv) {
 		std::cout<<"Something failed: "<<e.what()<<std::endl;
 		return -1;
 	}
+}
+
+int use(int _v) {
+
+	std::cout<<"["<<_v<<"] use: ./client.out -h #host -p #port [-ssl]\n"
+"\t-h Host name\n"
+"\t-p Port number\n"
+"\t-ssl Enable SSL"<<std::endl;
+
+	return _v;
+}
+
+void handle_sigint(int) {
+
+	exit(1);
 }
