@@ -65,6 +65,11 @@ server::~server() {
 
 	ssl_wrapper.reset(nullptr);
 
+	if(server_config::type::sock_unix==config.socktype) {
+
+		unlink(config.unix_sock_path.c_str());
+	}
+
 	if(log) {
 		lm::log(*log, lm::lvl::info)<<"Cleanup completed..."<<std::endl;
 	}
@@ -92,6 +97,34 @@ applications that intend to communicate with peers running on the same host.
 */
 
 void server::start() {
+
+	switch(config.socktype) {
+
+		case server_config::type::sock_unix:
+			setup_unix();
+		break;
+		case server_config::type::sock_inet:
+			setup_inet();
+		break;
+	}
+
+	if(::listen(file_descriptor, config.backlog)==-1) {
+
+		throw std::runtime_error("Could not set the server to listen");
+	}
+
+	in_sockets.max_descriptor=file_descriptor > in_sockets.max_descriptor ? file_descriptor : in_sockets.max_descriptor;
+	FD_ZERO(&in_sockets.set);
+	FD_SET(file_descriptor, &in_sockets.set);
+
+	if(file_descriptor==-1) {
+		throw std::runtime_error("Cannot run if server is not started");
+	}
+
+	loop();
+}
+
+void server::setup_inet() {
 
 	//Fill up the hints...
 	addrinfo hints;
@@ -136,24 +169,33 @@ void server::start() {
 		throw std::runtime_error("Could not bind socket! Perhaps the port is still in use?");
 	}
 
-	if(::listen(file_descriptor, config.backlog)==-1) {
+	if(log) {
+		lm::log(*log, lm::lvl::info)<<"Inet server started on "<<address<<":"<<config.port<<" with FD "<<file_descriptor<<std::endl;
+	}
 
-		throw std::runtime_error("Could not set the server to listen");
+}
+
+void server::setup_unix() {
+
+	file_descriptor=socket(AF_UNIX, SOCK_STREAM, 0);
+	if(-1==file_descriptor) {
+
+		throw std::runtime_error("Could not generate file descriptor for local socket");
+	}
+
+	//Directly from the man pages.
+	struct sockaddr_un my_addr;
+	memset(&my_addr, 0, sizeof(struct sockaddr_un));
+	my_addr.sun_family=AF_UNIX;
+	strncpy(my_addr.sun_path, config.unix_sock_path.c_str(), sizeof(my_addr.sun_path) - 1);
+	if(bind(file_descriptor, (struct sockaddr *) &my_addr, sizeof(struct sockaddr_un)) == -1) {
+
+		throw std::runtime_error("Could not bind local socket");
 	}
 
 	if(log) {
-		lm::log(*log, lm::lvl::info)<<"Server started on "<<address<<":"<<config.port<<" with FD "<<file_descriptor<<std::endl;
+		lm::log(*log, lm::lvl::info)<<"Unix server started on "<<config.unix_sock_path<<" with FD "<<file_descriptor<<std::endl;
 	}
-
-	in_sockets.max_descriptor=file_descriptor > in_sockets.max_descriptor ? file_descriptor : in_sockets.max_descriptor;
-	FD_ZERO(&in_sockets.set);
-	FD_SET(file_descriptor, &in_sockets.set);
-
-	if(file_descriptor==-1) {
-		throw std::runtime_error("Cannot run if server is not started");
-	}
-
-	loop();
 }
 
 void server::stop() {

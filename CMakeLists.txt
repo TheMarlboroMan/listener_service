@@ -41,7 +41,7 @@ if(${BUILD_EXAMPLES})
 	set_target_properties(lm PROPERTIES IMPORTED_LOCATION /usr/local/lib/liblm.a)
 
 	add_executable(client example/client.cpp example/src/client.cpp )
-	target_link_libraries(client sck_shared tools lm)
+	target_link_libraries(client sck_shared tools lm pthread)
 
 	add_executable(server example/server.cpp example/src/example_logic.cpp )
 	target_link_libraries(server sck_shared tools lm pthread)

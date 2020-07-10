@@ -29,18 +29,25 @@ int main(int argc, char ** argv) {
 
 		//Get port and init the server...
 		int port_index=argman.find_index("-p");
-		if(-1==port_index) {
+		int sockfile_index=argman.find_index("-f");
+		if( (-1==port_index && -1 ==sockfile_index) || (-1!=port_index && -1!=sockfile_index)) {
 			return use(2);
 		}
 
 		sck::server_config cfg;
-
-		int port=std::atoi(argman.get_argument(port_index+1).c_str());
-		if(0==port) {
-			throw std::runtime_error("Invalid port");
+		if(-1!=port_index) {
+			int port=std::atoi(argman.get_argument(port_index+1).c_str());
+			if(0==port) {
+				throw std::runtime_error("Invalid port");
+			}
+			cfg.socktype=sck::server_config::type::sock_inet;
+			cfg.port=port;
+		}
+		else {
+			cfg.socktype=sck::server_config::type::sock_unix;
+			cfg.unix_sock_path=argman.get_argument(sockfile_index+1);
 		}
 
-		cfg.port=port;
 		if(-1!=argman.find_index("-ssl")) {
 			cfg.use_ssl_tls=true;
 			cfg.ssl_tls_cert_path="cert.pem";
@@ -87,8 +94,9 @@ int main(int argc, char ** argv) {
 
 int use(int _v) {
 
-	std::cout<<"["<<_v<<"] use: ./server.out -p #port [-l #logfile] [-d] [-ssl]\n"
+	std::cout<<"["<<_v<<"] use: ./server.out -p #port|-f #file [-l #logfile] [-d] [-ssl]\n"
 "\t-p Port number\n"
+"\t-f Socket filename\n"
 "\t-l Log file to use\n"
 "\t-d Run as daemon\n"
 "\t-ssl Enable SSL"<<std::endl;

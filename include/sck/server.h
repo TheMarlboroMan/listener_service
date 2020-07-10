@@ -31,14 +31,18 @@ std::string ip_from_sockaddr_in(const sockaddr_in&);
 
 struct server_config {
 
-	int			port,
-				blocksize=1024,
+	enum class type{sock_unix, sock_inet};
+
+	type        socktype=type::sock_inet;
+	int			blocksize=1024,
 				backlog=5,
 				ssl_set_security_seconds=1,
-				ssl_set_security_milliseconds=0;
+				ssl_set_security_milliseconds=0,
+				port=0;
 	bool			use_ssl_tls=false;
-	std::string		ssl_tls_cert_path,
-				ssl_tls_key_path;
+	std::string		unix_sock_path,
+					ssl_tls_cert_path,
+					ssl_tls_key_path;
 };
 
 //!Main server.
@@ -66,6 +70,12 @@ class server {
 	bool				is_secure() const;
 
 	private:
+
+	//!Starts INET socket.
+	void                setup_inet();
+
+	//!Starts UNIX socket.
+	void                setup_unix();
 
 	//!Internal main loop.
 	void				loop();

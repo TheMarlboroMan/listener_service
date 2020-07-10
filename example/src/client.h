@@ -1,48 +1,23 @@
-#ifndef EXAMPLE_CLIENT_H
-#define EXAMPLE_CLIENT_H
+#pragma once
 
-#include <string>
-#include <memory>
-
-#ifdef WITH_SSL
-
-#include <openssl/ssl.h>
-
-#endif
+#include <sck/client.h>
 
 namespace app {
-
-struct ssl_client {
-
-								ssl_client(int);
-								~ssl_client();
-		int						send(const std::string&);
-		int						recv(char *, int);
-
-#ifdef WITH_SSL
-		SSL_CTX *				context=nullptr;
-		SSL *					ssl=nullptr;
-#endif
-};
 
 class client {
 
 	public:
+
 								client(const std::string&, int, bool);
-	void						send_message(const std::string&);								
-	std::string					wait_for_answer();	
-	bool						is_done() const {return done;}
+	void                        send(const std::string& _msg) {client_instance.send(_msg);}
+	std::string                 receive() {return client_instance.receive();}
+	std::string                 wait_for_answer();
+	bool                        is_done() const {return done;}
 
 	private:
 
-	void						send(const std::string&);
-	std::string					receive(bool=false);
-	int							file_descriptor=-1;
-
-	std::unique_ptr<ssl_client> ssl_cl;
+	sck::client                 client_instance;
 	bool						done=false;
 };
 
 }
-
-#endif

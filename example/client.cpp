@@ -25,18 +25,19 @@ int main(int argc, char ** argv) {
 		}
 
 		int host_index=argman.find_index("-h");
-		if(-1==host_index) {
-			return use(2);
-		}
-
 		int port_index=argman.find_index("-p");
-		if(-1==port_index) {
+
+		if(-1==port_index && -1==host_index) {
 			return use(2);
 		}
 
-		int port=std::atoi(argman.get_argument(port_index+1).c_str());
-		if(0==port) {
-			throw std::runtime_error("Invalid port");
+		int port=0;
+		if(-1!=port_index) {
+			int argport=std::atoi(argman.get_argument(port_index+1).c_str());
+			if(0==argport) {
+				throw std::runtime_error("Invalid port");
+			}
+			port=argport;
 		}
 
 		bool with_ssl=-1!=argman.find_index("-ssl");
@@ -62,7 +63,7 @@ int main(int argc, char ** argv) {
 			//TODO: Thing is, this is blocking...
 			std::cout<<">>";
 			std::getline(std::cin, line);
-			cl.send_message(line+'\n');
+			cl.send(line+'\n');
 			std::cout<<cl.wait_for_answer()<<std::endl;
 		}
 
@@ -78,8 +79,8 @@ int main(int argc, char ** argv) {
 int use(int _v) {
 
 	std::cout<<"["<<_v<<"] use: ./client.out -h #host -p #port [-ssl]\n"
-"\t-h Host name\n"
-"\t-p Port number\n"
+"\t-h Host name | unix filename\n"
+"\t-p Port number, -1 for local socket\n"
 "\t-ssl Enable SSL"<<std::endl;
 
 	return _v;
