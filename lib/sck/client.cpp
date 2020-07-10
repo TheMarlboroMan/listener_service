@@ -136,8 +136,9 @@ std::string client::receive(bool _non_blocking) {
 		//input buffer, so let us make sure that we don't throw anything if
 		//we don't want these messages discarded.
 
-		//TODO: We need a way to check that we were disconnected...
+		//When a stream socket peer has performed an orderly shutdown, the return value will be 0 (the traditional "end-of-file" return).
 		if(0==read) {
+			file_descriptor=-1; //We use -1 again to signal disconnection.
 			break;
 		}
 
@@ -147,9 +148,6 @@ std::string client::receive(bool _non_blocking) {
 		//!as an alternative to using select statements.
 
 		if(-1==read && _non_blocking) {
-
-//			std::cout<<"Non blocking, -1 read , errno="
-//				<<errno<<" B="<<EWOULDBLOCK<<" A="<<EAGAIN<<std::endl;
 
 			if( (errno==EWOULDBLOCK) || (errno==EAGAIN)) {
 				break;

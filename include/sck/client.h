@@ -36,6 +36,7 @@ class client {
 
 	void						send(const std::string&);
 	std::string					receive(bool=false);
+	bool                        is_connected() const {return -1!=file_descriptor;}
 
 	private:
 

@@ -280,7 +280,17 @@ void server::handle_new_connection() {
 		throw std::runtime_error("Failed on accept for new connection");
 	}
 
-	clients.insert( {client_descriptor, connected_client(client_descriptor, ip_from_sockaddr_in(client_address))} );
+	clients.insert(
+		{
+			client_descriptor,
+			connected_client(
+				client_descriptor,
+				server_config::type::sock_unix==config.socktype
+					? "LOCAL"
+					: ip_from_sockaddr_in(client_address)
+			)
+		}
+	);
 	FD_SET(client_descriptor, &in_sockets.set);
 	in_sockets.max_descriptor=client_descriptor > in_sockets.max_descriptor ? client_descriptor : in_sockets.max_descriptor;
 

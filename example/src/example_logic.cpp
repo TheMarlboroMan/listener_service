@@ -59,7 +59,7 @@ void example_logic::handle_client_data(const std::string& _msg, const sck::conne
 		}
 		else if(m=="about") {
 
-			std::string about=_c.ip+" "+(_c.is_secure() ? "secure" : "not secure");
+			std::string about=_c.ip+" ["+std::to_string(_c.descriptor)+"] "+(_c.is_secure() ? "secure" : "not secure");
 			write(about, _c);
 		}
 		else if(m=="hi") {

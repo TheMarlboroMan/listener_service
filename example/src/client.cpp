@@ -16,7 +16,7 @@ client::client(const std::string& _host, int _port, bool _secure)
 
 std::string client::wait_for_answer() {
 
-	while(true && !done) {
+	while(true && client_instance.is_connected()) {
 
 		std::string message=client_instance.receive(true);
 		if(message.size()) {
