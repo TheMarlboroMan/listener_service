@@ -1,7 +1,6 @@
 # listener_service
 
-Work in progress: trying to make a reusable listener service in C++ which can be 
-injected with arbitrary logic.
+A reusable listener service in C++ which can be injected with arbitrary logic.
 
 ## Dependencies
 
@@ -10,7 +9,7 @@ This application depends on the libraries located at:
 	https://github.com/TheMarlboroMan/log
 	https://github.com/TheMarlboroMan/tools 
 
-Be sure to build them first!.
+Be sure to build them first!. If you find yourself having problems, maybe you need earlier versions (actually, I would need to update this).
 
 ## Building
 
