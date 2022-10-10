@@ -1,6 +1,6 @@
 #include "example_logic.h"
 #include <sck/exception.h>
-#include <lm/sentry.h>
+#include <lm/log.h>
 
 #include <stdio.h>
 #include <iostream>
@@ -32,7 +32,7 @@ void example_logic::handle_client_data(const std::string& _msg, const sck::conne
 
 	try {
 		if(log) {
-			lm::log(*log, lm::lvl::debug)<<"got '"<<_msg<<"'"<<std::endl;
+			lm::log(*log).debug()<<"got '"<<_msg<<"'"<<std::endl;
 		}
 
 		if(_c.is_unverified()) {
@@ -78,7 +78,7 @@ void example_logic::handle_client_data(const std::string& _msg, const sck::conne
 	}
 	catch(std::exception& e) {
 		if(log) {
-			lm::log(*log, lm::lvl::info)<<"Something failed: "<<e.what()<<std::endl;
+			lm::log(*log).info()<<"Something failed: "<<e.what()<<std::endl;
 		}
 	}
 }
@@ -99,7 +99,7 @@ void example_logic::handle_client_security(const sck::connected_client& _c, bool
 void example_logic::handle_exception(sck::exception& _e, const sck::connected_client& _client) {
 
 	if(log) {
-		lm::log(*log, lm::lvl::info)<<"Server exception caught and rethrown: "<<_e.what()<<std::endl;
+		lm::log(*log).info()<<"Server exception caught and rethrown: "<<_e.what()<<std::endl;
 	}
 
 	srv.disconnect_client(_client);
@@ -114,7 +114,7 @@ void example_logic::write(const std::string& _msg, const sck::connected_client& 
 	catch(sck::write_exception& e) {
 
 		if(log) {
-			lm::log(*log, lm::lvl::info)<<"Client "<<_c.descriptor<<" error: "<<e.what()<<std::endl;
+			lm::log(*log).info()<<"Client "<<_c.descriptor<<" error: "<<e.what()<<std::endl;
 		}
 	}
 }
@@ -123,6 +123,6 @@ void example_logic::write(const std::string& _msg, const sck::connected_client& 
 void example_logic::handle_server_shutdown() {
 
 	if(log) {
-		lm::log(*log, lm::lvl::debug)<<"This is the example logic handling the server shutdown"<<std::endl;
+		lm::log(*log).debug()<<"This is the example logic handling the server shutdown"<<std::endl;
 	}
 }
